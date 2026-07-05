@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Bangumi.Win.Views.EpisodeProgressPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="28" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <CommandBar DefaultLabelPosition="Right" Background="Transparent">
+            <AppBarButton Icon="Back" Label="返回" Click="Back_Click" />
+            <AppBarButton Icon="Refresh" Label="刷新" Click="Refresh_Click" />
+            <AppBarButton Icon="Accept" Label="标记看过" Click="MarkDone_Click" />
+            <AppBarButton Icon="Favorite" Label="标记想看" Click="MarkWish_Click" />
+            <AppBarButton Icon="Cancel" Label="标记抛弃" Click="MarkDropped_Click" />
+            <AppBarButton Icon="Clear" Label="清除状态" Click="MarkNone_Click" />
+        </CommandBar>
+
+        <StackPanel Grid.Row="1" Spacing="4">
+            <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
+            <TextBlock Text="选择一个或多个本篇章节后批量更新单集状态；Bangumi 会据此重新计算条目进度。"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       TextWrapping="Wrap" />
+        </StackPanel>
+
+        <InfoBar x:Name="StatusBar" Grid.Row="2" IsOpen="False" />
+
+        <ListView x:Name="EpisodeList" Grid.Row="3" SelectionMode="Multiple">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="4,10" ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="96" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="96" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Episode.NumberText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Grid.Column="1" Spacing="3">
+                            <TextBlock Text="{Binding Episode.DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Episode.Airdate}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
+                        <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

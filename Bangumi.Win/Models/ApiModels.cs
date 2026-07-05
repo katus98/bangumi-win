@@ -101,3 +101,64 @@ public sealed record SearchResultItem(int Id, string DisplayName, string Subtitl
 {
     public string KindLabel => IsPerson ? "人物" : "条目";
 }
+
+public sealed record EpisodeSummary(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("type")] int Type,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("name_cn")] string? NameCn,
+    [property: JsonPropertyName("sort")] double Sort,
+    [property: JsonPropertyName("ep")] double? Ep,
+    [property: JsonPropertyName("airdate")] string? Airdate,
+    [property: JsonPropertyName("duration")] string? Duration,
+    [property: JsonPropertyName("desc")] string? Description)
+{
+    public string DisplayName => string.IsNullOrWhiteSpace(NameCn) ? Name : NameCn!;
+    public string NumberText => Type == 0 ? $"第 {Ep ?? Sort:0.##} 话" : EpisodeTypeLabel;
+    public string EpisodeTypeLabel => Type switch
+    {
+        0 => "本篇",
+        1 => "SP",
+        2 => "OP",
+        3 => "ED",
+        _ => "章节"
+    };
+}
+
+public sealed record UserEpisodeCollection(
+    [property: JsonPropertyName("episode")] EpisodeSummary Episode,
+    [property: JsonPropertyName("type")] int Type,
+    [property: JsonPropertyName("updated_at")] long UpdatedAt)
+{
+    public string StatusLabel => Type switch
+    {
+        0 => "未收藏",
+        1 => "想看",
+        2 => "看过",
+        3 => "抛弃",
+        _ => "未知"
+    };
+
+    public bool IsDone => Type == 2;
+}
+
+public sealed record PersonDetail(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("type")] int Type,
+    [property: JsonPropertyName("career")] List<string>? Career,
+    [property: JsonPropertyName("images")] SubjectImages? Images,
+    [property: JsonPropertyName("summary")] string? Summary,
+    [property: JsonPropertyName("short_summary")] string? ShortSummary,
+    [property: JsonPropertyName("locked")] bool? Locked)
+{
+    public string CareerText => Career is { Count: > 0 } ? string.Join(" / ", Career) : PersonTypeLabel;
+    public string ImageUrl => Images?.Medium ?? Images?.Grid ?? Images?.Small ?? string.Empty;
+    public string PersonTypeLabel => Type switch
+    {
+        1 => "个人",
+        2 => "公司",
+        3 => "组合",
+        _ => "人物"
+    };
+}

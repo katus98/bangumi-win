@@ -72,6 +72,12 @@ public sealed partial class CollectionsPage : Page
             return;
         }
 
+        if (collection.Subject.Type == 2)
+        {
+            Frame.Navigate(typeof(EpisodeProgressPage), collection.Subject);
+            return;
+        }
+
         var statusBox = new ComboBox
         {
             Header = "收藏状态",
@@ -81,12 +87,12 @@ public sealed partial class CollectionsPage : Page
         };
         var epBox = new NumberBox
         {
-            Header = "章节进度",
+            Header = collection.Subject.Type == 1 ? "话数进度" : "章节进度",
             Minimum = 0,
             Maximum = collection.Subject.Eps ?? 10000,
             Value = collection.EpStatus ?? 0,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
-            IsEnabled = collection.Subject.Eps is > 0
+            IsEnabled = collection.Subject.Type == 1 && collection.Subject.Eps is > 0
         };
         var volBox = new NumberBox
         {
@@ -95,13 +101,21 @@ public sealed partial class CollectionsPage : Page
             Maximum = collection.Subject.Volumes ?? 10000,
             Value = collection.VolStatus ?? 0,
             SpinButtonPlacementMode = NumberBoxSpinButtonPlacementMode.Inline,
-            IsEnabled = collection.Subject.Volumes is > 0
+            IsEnabled = collection.Subject.Type == 1 && collection.Subject.Volumes is > 0
         };
 
         var panel = new StackPanel { Spacing = 12 };
         panel.Children.Add(statusBox);
         panel.Children.Add(epBox);
         panel.Children.Add(volBox);
+        if (collection.Subject.Type != 1)
+        {
+            panel.Children.Add(new TextBlock
+            {
+                Text = "当前 API 仅允许直接修改书籍条目的话数/卷数进度；动画请使用单集进度页面。",
+                TextWrapping = TextWrapping.Wrap
+            });
+        }
 
         var dialog = new ContentDialog
         {

@@ -2,11 +2,13 @@ using Bangumi.Win.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,25 +41,12 @@ public sealed class BangumiApiClient
 
     public async Task<IReadOnlyList<TimelineEntry>> GetTimelineAsync(string username, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/{Uri.EscapeDataString(username)}/timeline?limit=30");
+        using var request = CreateRequest(HttpMethod.Get, $"https://bgm.tv/user/{Uri.EscapeDataString(username)}/timeline");
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
 
-        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-        using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
-        var array = document.RootElement.ValueKind == JsonValueKind.Array
-            ? document.RootElement
-            : document.RootElement.TryGetProperty("data", out var data) ? data : default;
-
-        if (array.ValueKind != JsonValueKind.Array)
-        {
-            return [];
-        }
-
-        return array.EnumerateArray()
-            .Select(ParseTimelineEntry)
-            .OrderByDescending(item => item.CreatedAt)
-            .ToList();
+        var html = await response.Content.ReadAsStringAsync(cancellationToken);
+        return ParseTimelineHtml(html, username);
     }
 
     public async Task<PagedResponse<SubjectCollection>> GetCollectionsAsync(string username, int? subjectType, int? collectionType, int offset, CancellationToken cancellationToken = default)
@@ -92,6 +81,25 @@ public sealed class BangumiApiClient
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task<PagedResponse<UserEpisodeCollection>> GetEpisodeCollectionsAsync(int subjectId, int offset = 0, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/-/collections/{subjectId}/episodes?limit=1000&offset={offset}&episode_type=0");
+        return await SendAsync<PagedResponse<UserEpisodeCollection>>(request, cancellationToken);
+    }
+
+    public async Task UpdateEpisodeCollectionsAsync(int subjectId, IReadOnlyList<int> episodeIds, int status, CancellationToken cancellationToken = default)
+    {
+        if (episodeIds.Count == 0)
+        {
+            return;
+        }
+
+        using var request = CreateRequest(HttpMethod.Patch, $"/v0/users/-/collections/{subjectId}/episodes");
+        request.Content = JsonContent.Create(new { episode_id = episodeIds, type = status }, options: _jsonOptions);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task AddCollectionAsync(int subjectId, int status = 3, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Post, $"/v0/users/-/collections/{subjectId}");
@@ -104,6 +112,19 @@ public sealed class BangumiApiClient
     {
         using var request = CreateRequest(HttpMethod.Get, $"/v0/subjects/{subjectId}");
         return await SendAsync<SubjectSummary>(request, cancellationToken);
+    }
+
+    public async Task<PersonDetail> GetPersonAsync(int personId, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"/v0/persons/{personId}");
+        return await SendAsync<PersonDetail>(request, cancellationToken);
+    }
+
+    public async Task CollectPersonAsync(int personId, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/persons/{personId}/collect");
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
     }
 
     public async Task<IReadOnlyList<SearchResultItem>> SearchAsync(string keyword, int? type, CancellationToken cancellationToken = default)
@@ -188,21 +209,55 @@ public sealed class BangumiApiClient
         throw new HttpRequestException($"Bangumi API request failed: {(int)response.StatusCode} {response.ReasonPhrase}. {detail}");
     }
 
-    private static TimelineEntry ParseTimelineEntry(JsonElement item)
+    private static IReadOnlyList<TimelineEntry> ParseTimelineHtml(string html, string username)
     {
-        var title = GetString(item, "title")
-            ?? GetString(item, "message")
-            ?? GetString(item, "content")
-            ?? "时间胶囊动态";
-        var detail = GetString(item, "desc")
-            ?? GetString(item, "detail")
-            ?? (item.TryGetProperty("data", out var data) ? data.ToString() : string.Empty);
-        var userName = item.TryGetProperty("user", out var user)
-            ? GetString(user, "nickname") ?? GetString(user, "username") ?? string.Empty
-            : string.Empty;
-        var createdAt = GetDate(item, "created_at") ?? GetDate(item, "created") ?? GetUnixDate(item, "timestamp");
+        var entries = new List<TimelineEntry>();
+        DateTimeOffset? currentDate = null;
+        var timelineStart = html.IndexOf("id=\"timeline\"", StringComparison.OrdinalIgnoreCase);
+        if (timelineStart >= 0)
+        {
+            html = html[timelineStart..];
+        }
 
-        return new TimelineEntry(title, detail, userName, createdAt);
+        foreach (Match match in Regex.Matches(html, @"<h4\s+class=""Header"">(?<date>.*?)</h4>|<li[^>]*class=""[^""]*tml_item[^""]*""[^>]*>(?<item>.*?)</li>", RegexOptions.Singleline | RegexOptions.IgnoreCase))
+        {
+            if (match.Groups["date"].Success)
+            {
+                currentDate = TryParseTimelineDate(StripHtml(match.Groups["date"].Value));
+                continue;
+            }
+
+            var itemHtml = match.Groups["item"].Value;
+            var infoMatch = Regex.Match(itemHtml, @"<span[^>]*class=""[^""]*info_full[^""]*""[^>]*>(?<info>.*?)</span>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            var info = infoMatch.Success ? infoMatch.Groups["info"].Value : itemHtml;
+            var title = StripHtml(info);
+            var detailMatch = Regex.Match(itemHtml, @"<p\s+class=""info\s+tip""[^>]*>(?<detail>.*?)</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
+            var detail = detailMatch.Success ? StripHtml(detailMatch.Groups["detail"].Value) : string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(title))
+            {
+                entries.Add(new TimelineEntry(title, detail, username, currentDate));
+            }
+        }
+
+        return entries
+            .OrderByDescending(item => item.CreatedAt)
+            .Take(30)
+            .ToList();
+    }
+
+    private static DateTimeOffset? TryParseTimelineDate(string value)
+    {
+        return DateTimeOffset.TryParse(value, out var parsed)
+            ? parsed
+            : null;
+    }
+
+    private static string StripHtml(string html)
+    {
+        var withoutTags = Regex.Replace(html, "<.*?>", " ", RegexOptions.Singleline);
+        var decoded = WebUtility.HtmlDecode(withoutTags);
+        return Regex.Replace(decoded, @"\s+", " ").Trim();
     }
 
     private static string? GetString(JsonElement element, string propertyName)

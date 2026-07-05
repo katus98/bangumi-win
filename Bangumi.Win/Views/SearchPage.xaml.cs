@@ -35,7 +35,7 @@ public sealed partial class SearchPage : Page
         {
             if (item.IsPerson)
             {
-                _ = ShowPersonAsync(item);
+                Frame.Navigate(typeof(PersonDetailPage), item.Id);
             }
             else
             {
@@ -53,13 +53,7 @@ public sealed partial class SearchPage : Page
 
         if (item.IsPerson)
         {
-            ShowStatus("人物搜索结果不能加入条目收藏。", InfoBarSeverity.Warning);
-            return;
-        }
-
-        if (!AppServices.TokenStore.HasToken)
-        {
-            ShowStatus("请先登录后再加入收藏。", InfoBarSeverity.Warning);
+            await AddPersonCollectionAsync(item);
             return;
         }
 
@@ -96,17 +90,23 @@ public sealed partial class SearchPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task ShowPersonAsync(SearchResultItem item)
+    private async System.Threading.Tasks.Task AddPersonCollectionAsync(SearchResultItem item)
     {
-        var dialog = new ContentDialog
+        if (!AppServices.TokenStore.HasToken)
         {
-            Title = item.DisplayName,
-            Content = string.IsNullOrWhiteSpace(item.Summary) ? item.Subtitle : item.Summary,
-            CloseButtonText = "关闭",
-            XamlRoot = XamlRoot
-        };
+            ShowStatus("请先登录后再收藏人物。", InfoBarSeverity.Warning);
+            return;
+        }
 
-        await dialog.ShowAsync();
+        try
+        {
+            await AppServices.ApiClient.CollectPersonAsync(item.Id);
+            ShowStatus($"已收藏人物「{item.DisplayName}」。", InfoBarSeverity.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"收藏人物失败：{ex.Message}", InfoBarSeverity.Error);
+        }
     }
 
     private void ShowStatus(string message, InfoBarSeverity severity)
