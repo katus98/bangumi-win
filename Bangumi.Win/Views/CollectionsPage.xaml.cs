@@ -45,7 +45,7 @@ public sealed partial class CollectionsPage : Page
     {
         if (e.ClickedItem is SubjectCollection collection)
         {
-            Frame.Navigate(typeof(SubjectDetailPage), collection.Subject.Id);
+            Frame.Navigate(typeof(SubjectDetailPage), collection);
         }
     }
 

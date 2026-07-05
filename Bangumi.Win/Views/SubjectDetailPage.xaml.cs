@@ -35,9 +35,23 @@ public sealed partial class SubjectDetailPage : Page
     {
         base.OnNavigatedTo(e);
 
-        if (e.Parameter is int subjectId)
+        switch (e.Parameter)
         {
-            await LoadSubjectAsync(subjectId);
+            case SubjectCollection collection:
+                RenderSubject(collection.Subject);
+                await LoadSubjectAsync(collection.EffectiveSubjectId, collection.Subject);
+                break;
+            case SubjectSummary subject:
+                RenderSubject(subject);
+                await LoadSubjectAsync(subject.Id, subject);
+                break;
+            case int subjectId when subjectId > 0:
+                await LoadSubjectAsync(subjectId);
+                break;
+            default:
+                ShowStatus("无法打开条目详情：缺少有效的条目 ID。", InfoBarSeverity.Error);
+                SummaryText.Text = "暂无简介";
+                break;
         }
     }
 
@@ -75,24 +89,13 @@ public sealed partial class SubjectDetailPage : Page
         flyout.ShowAt(button);
     }
 
-    private async System.Threading.Tasks.Task LoadSubjectAsync(int subjectId)
+    private async System.Threading.Tasks.Task LoadSubjectAsync(int subjectId, SubjectSummary? fallbackSubject = null)
     {
         try
         {
             ShowStatus("正在加载条目详情...", InfoBarSeverity.Informational);
             _subject = await AppServices.ApiClient.GetSubjectAsync(subjectId);
-            TitleText.Text = _subject.DisplayName;
-            SubtitleText.Text = _subject.Subtitle;
-            TypeBadgeText.Text = _subject.TypeLabel;
-            ScoreText.Text = _subject.DisplayScore is double score ? $"评分 {score:0.0}" : "暂无评分";
-            ProgressHintText.Text = BuildProgressHint(_subject);
-            var tags = _subject.Tags is { Count: > 0 } ? _subject.Tags.Take(16).ToList() : [];
-            TagsItems.ItemsSource = tags;
-            TagsEmptyText.Visibility = tags.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-            SummaryText.Text = _subject.Summary ?? "暂无简介";
-            var cover = string.IsNullOrWhiteSpace(_subject.ImageUrl) ? null : new BitmapImage(new Uri(_subject.ImageUrl));
-            CoverImage.Source = cover;
-            BackdropImage.Source = cover;
+            RenderSubject(_subject);
             CommentList.ItemsSource = _comments;
             _comments.Clear();
             _commentOffset = 0;
@@ -105,7 +108,39 @@ public sealed partial class SubjectDetailPage : Page
         }
         catch (Exception ex)
         {
+            if (_subject is null && fallbackSubject is not null)
+            {
+                RenderSubject(fallbackSubject);
+            }
+
             ShowStatus($"加载失败：{ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
+    private void RenderSubject(SubjectSummary subject)
+    {
+        _subject = subject;
+        TitleText.Text = subject.DisplayName;
+        SubtitleText.Text = subject.Subtitle;
+        TypeBadgeText.Text = subject.TypeLabel;
+        ScoreText.Text = subject.DisplayScore is double score ? $"评分 {score:0.0}" : "暂无评分";
+        ProgressHintText.Text = BuildProgressHint(subject);
+        CollectionStatusButton.Content = "未收藏";
+        var tags = subject.Tags is { Count: > 0 } ? subject.Tags.Take(16).ToList() : [];
+        TagsItems.ItemsSource = tags;
+        TagsEmptyText.Visibility = tags.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        SummaryText.Text = string.IsNullOrWhiteSpace(subject.Summary) ? "暂无简介" : subject.Summary;
+
+        if (Uri.TryCreate(subject.ImageUrl, UriKind.Absolute, out var imageUri))
+        {
+            var cover = new BitmapImage(imageUri);
+            CoverImage.Source = cover;
+            BackdropImage.Source = cover;
+        }
+        else
+        {
+            CoverImage.Source = null;
+            BackdropImage.Source = null;
         }
     }
 

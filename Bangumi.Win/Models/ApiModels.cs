@@ -68,6 +68,7 @@ public sealed record SubjectTag(
 }
 
 public sealed record SubjectCollection(
+    [property: JsonPropertyName("subject_id")] int SubjectId,
     [property: JsonPropertyName("subject")] SubjectSummary Subject,
     [property: JsonPropertyName("type")] int Type,
     [property: JsonPropertyName("rate")] int? Rate,
@@ -76,6 +77,8 @@ public sealed record SubjectCollection(
     [property: JsonPropertyName("vol_status")] int? VolStatus,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt)
 {
+    public int EffectiveSubjectId => Subject.Id > 0 ? Subject.Id : SubjectId;
+
     public string StatusLabel => BangumiConstants.CollectionStatusLabel(Subject.Type, Type);
 
     public string ProgressLabel
