@@ -13,7 +13,15 @@
         <Image x:Name="BackdropImage" Grid.RowSpan="2" Stretch="UniformToFill" Opacity="0.18" IsHitTestVisible="False" />
         <Rectangle Grid.RowSpan="2" Fill="{ThemeResource ApplicationPageBackgroundThemeBrush}" Opacity="0.88" IsHitTestVisible="False" />
 
-        <InfoBar x:Name="StatusBar" IsOpen="False" />
+        <InfoBar
+            x:Name="StatusBar"
+            MinWidth="320"
+            MaxWidth="720"
+            Margin="0,12,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            IsOpen="False"
+            Canvas.ZIndex="10" />
 
         <ScrollViewer x:Name="DetailScrollViewer" Grid.Row="1" ViewChanged="DetailScrollViewer_ViewChanged">
             <Grid RowSpacing="18">
@@ -88,7 +96,7 @@
                         <ItemsControl x:Name="TagsItems">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <VariableSizedWrapGrid Orientation="Horizontal" />
+                                    <StackPanel Orientation="Horizontal" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>

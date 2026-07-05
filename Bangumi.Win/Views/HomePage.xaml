@@ -7,7 +7,6 @@
     <Grid Padding="28" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -28,11 +27,19 @@
             </Button>
         </Grid>
 
-        <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
+        <InfoBar
+            x:Name="StatusBar"
+            MinWidth="320"
+            MaxWidth="720"
+            Margin="0,12,0,0"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top"
+            IsOpen="False"
+            Canvas.ZIndex="10" />
 
         <ListView
             x:Name="TimelineList"
-            Grid.Row="2"
+            Grid.Row="1"
             IsItemClickEnabled="True"
             ItemClick="TimelineList_ItemClick"
             Loaded="TimelineList_Loaded"
@@ -52,7 +59,6 @@
                         <StackPanel Grid.Column="2" Spacing="4">
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="3" />
-                            <TextBlock Text="{Binding UserName}" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>

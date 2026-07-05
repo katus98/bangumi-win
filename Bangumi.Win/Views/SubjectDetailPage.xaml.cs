@@ -8,6 +8,8 @@ using Microsoft.UI.Xaml.Navigation;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Linq;
 
 namespace Bangumi.Win.Views;
@@ -16,6 +18,7 @@ public sealed partial class SubjectDetailPage : Page
 {
     private SubjectSummary? _subject;
     private SubjectCollection? _collection;
+    private int? _collectionStatus;
     private readonly ObservableCollection<SubjectComment> _comments = [];
     private List<UserEpisodeCollection> _episodes = [];
     private List<EpisodeStatusRow> _episodeRows = [];
@@ -65,7 +68,7 @@ public sealed partial class SubjectDetailPage : Page
         }
 
         flyout.Items.Add(new MenuFlyoutSeparator());
-        var cancelItem = new MenuFlyoutItem { Text = "取消收藏", IsEnabled = _collection is not null };
+        var cancelItem = new MenuFlyoutItem { Text = "取消收藏", IsEnabled = _collectionStatus is not null };
         cancelItem.Click += async (_, _) => await DeleteCollectionAsync();
         flyout.Items.Add(cancelItem);
 
@@ -109,6 +112,7 @@ public sealed partial class SubjectDetailPage : Page
     private async System.Threading.Tasks.Task LoadCollectionAsync()
     {
         _collection = null;
+        _collectionStatus = null;
         UpdateCollectionButton(null);
         EpisodeStatusList.Visibility = Visibility.Collapsed;
         EpisodeStatusList.ItemsSource = null;
@@ -125,7 +129,8 @@ public sealed partial class SubjectDetailPage : Page
         {
             var me = await AppServices.ApiClient.GetMeAsync();
             _collection = await AppServices.ApiClient.GetCollectionAsync(me.Username, _subject.Id);
-            UpdateCollectionButton(_collection.Type);
+            _collectionStatus = _collection.Type;
+            UpdateCollectionButton(_collectionStatus);
 
             if (_subject.Type == 2)
             {
@@ -139,6 +144,7 @@ public sealed partial class SubjectDetailPage : Page
         }
         catch
         {
+            _collectionStatus = null;
             UpdateCollectionButton(null);
         }
     }
@@ -174,7 +180,8 @@ public sealed partial class SubjectDetailPage : Page
         try
         {
             await AppServices.ApiClient.UpdateCollectionAsync(_subject.Id, status, null, null);
-            await LoadCollectionAsync();
+            _collectionStatus = status;
+            UpdateCollectionButton(status);
             ShowStatus("收藏状态已更新。", InfoBarSeverity.Success);
         }
         catch (Exception ex)
@@ -193,7 +200,9 @@ public sealed partial class SubjectDetailPage : Page
         try
         {
             await AppServices.ApiClient.DeleteCollectionAsync(_subject.Id);
-            await LoadCollectionAsync();
+            _collection = null;
+            _collectionStatus = null;
+            UpdateCollectionButton(null);
             ShowStatus("已取消收藏。", InfoBarSeverity.Success);
         }
         catch (Exception ex)
@@ -221,7 +230,11 @@ public sealed partial class SubjectDetailPage : Page
                 ? _episodeRows.Where(item => item.Source.Episode.Sort <= episode.Episode.Sort).Select(item => item.Source.Episode.Id).ToList()
                 : [episode.Episode.Id];
             await AppServices.ApiClient.UpdateEpisodeCollectionsAsync(_subject.Id, ids, status);
-            await LoadCollectionAsync();
+            foreach (var row in _episodeRows.Where(item => ids.Contains(item.Source.Episode.Id)))
+            {
+                row.UpdateStatus(status);
+            }
+
             ShowStatus("单集状态已更新。", InfoBarSeverity.Success);
         }
         catch (Exception ex)
@@ -334,12 +347,36 @@ public sealed partial class SubjectDetailPage : Page
         StatusBar.IsOpen = true;
     }
 
-    private sealed class EpisodeStatusRow(UserEpisodeCollection source)
+    private sealed class EpisodeStatusRow(UserEpisodeCollection source) : INotifyPropertyChanged
     {
+        private int _type = source.Type;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         public UserEpisodeCollection Source { get; } = source;
         public EpisodeSummary Episode => Source.Episode;
-        public string ActionLabel => Source.ActionLabel;
-        public SolidColorBrush ActionBackground => StatusBackground(Source.Type);
-        public SolidColorBrush ActionForeground => StatusForeground(Source.Type);
+        public string ActionLabel => _type == 0 ? "未收藏" : _type switch
+        {
+            1 => "想看",
+            2 => "看过",
+            3 => "抛弃",
+            _ => "未知"
+        };
+
+        public SolidColorBrush ActionBackground => StatusBackground(_type);
+        public SolidColorBrush ActionForeground => StatusForeground(_type);
+
+        public void UpdateStatus(int status)
+        {
+            _type = status;
+            OnPropertyChanged(nameof(ActionLabel));
+            OnPropertyChanged(nameof(ActionBackground));
+            OnPropertyChanged(nameof(ActionForeground));
+        }
+
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }
