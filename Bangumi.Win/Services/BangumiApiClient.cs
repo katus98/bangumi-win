@@ -9,6 +9,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -70,13 +71,21 @@ public sealed class BangumiApiClient
     {
         var body = new Dictionary<string, object?>
         {
-            ["type"] = status,
-            ["ep_status"] = epStatus,
-            ["vol_status"] = volStatus
+            ["type"] = status
         };
 
-        using var request = CreateRequest(HttpMethod.Patch, $"/v0/users/-/collections/{subjectId}");
-        request.Content = JsonContent.Create(body, options: _jsonOptions);
+        if (epStatus is not null)
+        {
+            body["ep_status"] = epStatus;
+        }
+
+        if (volStatus is not null)
+        {
+            body["vol_status"] = volStatus;
+        }
+
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/users/-/collections/{subjectId}");
+        request.Content = CreateJsonContent(body);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
@@ -103,7 +112,7 @@ public sealed class BangumiApiClient
     public async Task AddCollectionAsync(int subjectId, int status = 3, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Post, $"/v0/users/-/collections/{subjectId}");
-        request.Content = JsonContent.Create(new { type = status }, options: _jsonOptions);
+        request.Content = CreateJsonContent(new { type = status });
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
@@ -196,6 +205,13 @@ public sealed class BangumiApiClient
         await EnsureSuccessAsync(response, cancellationToken);
         var result = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, cancellationToken);
         return result ?? throw new InvalidOperationException("Bangumi API returned an empty response.");
+    }
+
+    private StringContent CreateJsonContent<T>(T value)
+    {
+        var content = new StringContent(JsonSerializer.Serialize(value, _jsonOptions), Encoding.UTF8);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+        return content;
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)

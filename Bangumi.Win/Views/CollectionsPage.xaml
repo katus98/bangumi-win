@@ -15,17 +15,19 @@
 
         <TextBlock Text="收藏管理" Style="{ThemeResource TitleTextBlockStyle}" />
 
-        <TabView
+        <StackPanel
             x:Name="SubjectTypeTabs"
             Grid.Row="1"
-            IsAddTabButtonVisible="False"
-            SelectionChanged="SubjectTypeTabs_SelectionChanged" />
+            Orientation="Horizontal"
+            HorizontalAlignment="Center"
+            Spacing="8" />
 
-        <TabView
+        <StackPanel
             x:Name="CollectionStatusTabs"
             Grid.Row="2"
-            IsAddTabButtonVisible="False"
-            SelectionChanged="CollectionStatusTabs_SelectionChanged" />
+            Orientation="Horizontal"
+            HorizontalAlignment="Center"
+            Spacing="6" />
 
         <InfoBar x:Name="StatusBar" Grid.Row="3" IsOpen="False" />
 

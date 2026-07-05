@@ -15,7 +15,7 @@
     <NavigationView
         x:Name="RootNavigation"
         IsBackButtonVisible="Collapsed"
-        IsSettingsVisible="False"
+        IsSettingsVisible="True"
         PaneDisplayMode="Auto"
         SelectionChanged="RootNavigation_SelectionChanged">
         <NavigationView.MenuItems>
@@ -23,9 +23,28 @@
             <NavigationViewItem Content="收藏" Icon="Library" Tag="collections" />
             <NavigationViewItem Content="搜索" Icon="Find" Tag="search" />
         </NavigationView.MenuItems>
-        <NavigationView.FooterMenuItems>
-            <NavigationViewItem x:Name="AccountNavigationItem" Content="登录" Icon="Contact" Tag="account" />
-        </NavigationView.FooterMenuItems>
-        <Frame x:Name="ContentFrame" />
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Padding="20,12,28,8">
+                <Button
+                    x:Name="AccountButton"
+                    HorizontalAlignment="Right"
+                    Click="AccountButton_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="32" Height="32" CornerRadius="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                            <Image x:Name="AccountAvatar" Stretch="UniformToFill" />
+                        </Border>
+                        <TextBlock x:Name="AccountText" Text="登录" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <Frame x:Name="ContentFrame" Grid.Row="1" />
+        </Grid>
     </NavigationView>
 </Window>

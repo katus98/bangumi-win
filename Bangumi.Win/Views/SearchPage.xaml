@@ -29,11 +29,12 @@
             </Button>
         </Grid>
 
-        <TabView
+        <StackPanel
             x:Name="SearchTypeTabs"
             Grid.Row="2"
-            IsAddTabButtonVisible="False"
-            SelectionChanged="SearchTypeTabs_SelectionChanged" />
+            Orientation="Horizontal"
+            HorizontalAlignment="Center"
+            Spacing="8" />
 
         <InfoBar x:Name="StatusBar" Grid.Row="3" IsOpen="False" />
 

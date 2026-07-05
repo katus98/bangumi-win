@@ -2,6 +2,7 @@ using Bangumi.Win.Models;
 using Bangumi.Win.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -32,22 +33,6 @@ public sealed partial class CollectionsPage : Page
         await LoadCollectionsAsync(reset: true);
     }
 
-    private async void SubjectTypeTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (IsLoaded)
-        {
-            await LoadCollectionsAsync(reset: true);
-        }
-    }
-
-    private async void CollectionStatusTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        if (IsLoaded)
-        {
-            await LoadCollectionsAsync(reset: true);
-        }
-    }
-
     private async void CollectionList_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
         if (!_isLoading && _collections.Count < _total && args.ItemIndex >= _collections.Count - 6)
@@ -68,12 +53,6 @@ public sealed partial class CollectionsPage : Page
     {
         if (sender is not Button { Tag: SubjectCollection collection })
         {
-            return;
-        }
-
-        if (collection.Subject.Type == 2)
-        {
-            Frame.Navigate(typeof(EpisodeProgressPage), collection.Subject);
             return;
         }
 
@@ -105,19 +84,39 @@ public sealed partial class CollectionsPage : Page
 
         var panel = new StackPanel { Spacing = 12 };
         panel.Children.Add(statusBox);
-        panel.Children.Add(epBox);
-        panel.Children.Add(volBox);
+        if (collection.Subject.Type == 1)
+        {
+            panel.Children.Add(epBox);
+            panel.Children.Add(volBox);
+        }
+        else if (collection.Subject.Type == 2)
+        {
+            panel.Children.Add(new TextBlock
+            {
+                Text = "这里修改整个动画的收藏状态；单集进度请使用单集进度入口。",
+                TextWrapping = TextWrapping.Wrap,
+                Foreground = (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+            });
+        }
 
         var dialog = new ContentDialog
         {
             Title = collection.Subject.DisplayName,
             Content = panel,
             PrimaryButtonText = "保存",
+            SecondaryButtonText = collection.Subject.Type == 2 ? "单集进度" : string.Empty,
             CloseButtonText = "取消",
             XamlRoot = XamlRoot
         };
 
-        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Secondary)
+        {
+            Frame.Navigate(typeof(EpisodeProgressPage), collection.Subject);
+            return;
+        }
+
+        if (result == ContentDialogResult.Primary)
         {
             try
             {
@@ -182,24 +181,74 @@ public sealed partial class CollectionsPage : Page
         }
     }
 
-    private static void CreateTabs(TabView tabView, IReadOnlyList<OptionItem<int?>> items)
+    private void CreateTabs(StackPanel tabHost, IReadOnlyList<OptionItem<int?>> items)
     {
         foreach (var item in items)
         {
-            tabView.TabItems.Add(new TabViewItem
+            var button = new Button
             {
-                Header = item.Name,
+                Content = item.Name,
                 Tag = item,
-                IsClosable = false
-            });
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                BorderThickness = new Thickness(0, 0, 0, 2),
+                Padding = new Thickness(14, 8, 14, 8)
+            };
+            button.Click += FilterTab_Click;
+            tabHost.Children.Add(button);
         }
 
-        tabView.SelectedIndex = 0;
+        if (tabHost.Children.FirstOrDefault() is Button first)
+        {
+            first.IsEnabled = false;
+        }
+
+        UpdateTabStyles(tabHost);
     }
 
-    private static int? GetSelectedValue(TabView tabView)
+    private async void FilterTab_Click(object sender, RoutedEventArgs e)
     {
-        return tabView.SelectedItem is TabViewItem { Tag: OptionItem<int?> item } ? item.Value : null;
+        if (sender is not Button clicked)
+        {
+            return;
+        }
+
+        var parent = clicked.Parent as StackPanel;
+        if (parent is null)
+        {
+            return;
+        }
+
+        foreach (var button in parent.Children.OfType<Button>())
+        {
+            button.IsEnabled = true;
+        }
+
+        clicked.IsEnabled = false;
+        UpdateTabStyles(parent);
+
+        if (IsLoaded)
+        {
+            await LoadCollectionsAsync(reset: true);
+        }
+    }
+
+    private static int? GetSelectedValue(StackPanel tabHost)
+    {
+        return tabHost.Children.OfType<Button>().FirstOrDefault(button => !button.IsEnabled)?.Tag is OptionItem<int?> item ? item.Value : null;
+    }
+
+    private void UpdateTabStyles(StackPanel tabHost)
+    {
+        var accent = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+        var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        foreach (var button in tabHost.Children.OfType<Button>())
+        {
+            button.BorderBrush = button.IsEnabled ? transparent : accent;
+            button.Foreground = button.IsEnabled
+                ? (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                : (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+            button.FontWeight = button.IsEnabled ? Microsoft.UI.Text.FontWeights.Normal : Microsoft.UI.Text.FontWeights.SemiBold;
+        }
     }
 
     private static int IndexOfStatus(int status)

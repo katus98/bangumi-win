@@ -3,8 +3,10 @@ using Bangumi.Win.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Bangumi.Win.Views;
 
@@ -22,21 +24,43 @@ public sealed partial class SearchPage : Page
         ResultList.ItemsSource = _results;
         foreach (var item in BangumiConstants.SearchTypes)
         {
-            SearchTypeTabs.TabItems.Add(new TabViewItem
+            var button = new Button
             {
-                Header = item.Name,
+                Content = item.Name,
                 Tag = item,
-                IsClosable = false
-            });
+                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+                BorderThickness = new Thickness(0, 0, 0, 2),
+                Padding = new Thickness(14, 8, 14, 8)
+            };
+            button.Click += SearchTypeTab_Click;
+            SearchTypeTabs.Children.Add(button);
         }
 
-        SearchTypeTabs.SelectedIndex = 0;
+        if (SearchTypeTabs.Children.FirstOrDefault() is Button first)
+        {
+            first.IsEnabled = false;
+        }
+
+        UpdateTabStyles();
     }
 
     private async void Search_Click(object sender, RoutedEventArgs e) => await SearchAsync(reset: true);
 
-    private async void SearchTypeTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void SearchTypeTab_Click(object sender, RoutedEventArgs e)
     {
+        if (sender is not Button clicked)
+        {
+            return;
+        }
+
+        foreach (var button in SearchTypeTabs.Children.OfType<Button>())
+        {
+            button.IsEnabled = true;
+        }
+
+        clicked.IsEnabled = false;
+        UpdateTabStyles();
+
         if (IsLoaded && !string.IsNullOrWhiteSpace(KeywordBox.Text))
         {
             await SearchAsync(reset: true);
@@ -114,7 +138,7 @@ public sealed partial class SearchPage : Page
             }
 
             ShowStatus("正在搜索...", InfoBarSeverity.Informational);
-            var type = SearchTypeTabs.SelectedItem is TabViewItem { Tag: OptionItem<int?> item } ? item.Value : null;
+            var type = SearchTypeTabs.Children.OfType<Button>().FirstOrDefault(button => !button.IsEnabled)?.Tag is OptionItem<int?> item ? item.Value : null;
             var page = await AppServices.ApiClient.SearchAsync(keyword, type, _offset);
             foreach (var result in page)
             {
@@ -189,5 +213,19 @@ public sealed partial class SearchPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+    }
+
+    private void UpdateTabStyles()
+    {
+        var accent = (Brush)Application.Current.Resources["AccentFillColorDefaultBrush"];
+        var transparent = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+        foreach (var button in SearchTypeTabs.Children.OfType<Button>())
+        {
+            button.BorderBrush = button.IsEnabled ? transparent : accent;
+            button.Foreground = button.IsEnabled
+                ? (Brush)Application.Current.Resources["TextFillColorSecondaryBrush"]
+                : (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
+            button.FontWeight = button.IsEnabled ? Microsoft.UI.Text.FontWeights.Normal : Microsoft.UI.Text.FontWeights.SemiBold;
+        }
     }
 }
