@@ -6,48 +6,82 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="Bangumi">
+    Title="番喵">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <NavigationView
-        x:Name="RootNavigation"
-        IsBackButtonVisible="Collapsed"
-        IsSettingsVisible="False"
-        PaneDisplayMode="Auto"
-        SelectionChanged="RootNavigation_SelectionChanged">
-        <NavigationView.MenuItems>
-            <NavigationViewItem Content="时间胶囊" Icon="Home" Tag="home" />
-            <NavigationViewItem Content="收藏" Icon="Library" Tag="collections" />
-            <NavigationViewItem Content="搜索" Icon="Find" Tag="search" />
-        </NavigationView.MenuItems>
-        <NavigationView.FooterMenuItems>
-            <NavigationViewItem Content="设置" Icon="Setting" Tag="settings" />
-        </NavigationView.FooterMenuItems>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
+        <Grid x:Name="AppTitleBar" Background="Transparent" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="48" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="140" />
+            </Grid.ColumnDefinitions>
 
-            <Grid Padding="20,12,28,8">
-                <Button
-                    x:Name="AccountButton"
-                    HorizontalAlignment="Right"
-                    Click="AccountButton_Click">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Width="32" Height="32" CornerRadius="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                            <Image x:Name="AccountAvatar" Stretch="UniformToFill" />
-                        </Border>
-                        <TextBlock x:Name="AccountText" Text="登录" VerticalAlignment="Center" />
-                    </StackPanel>
-                </Button>
-            </Grid>
+            <Button
+                x:Name="TitleBackButton"
+                Width="48"
+                Height="48"
+                Padding="0"
+                Background="Transparent"
+                BorderThickness="0"
+                Visibility="Collapsed"
+                Click="TitleBackButton_Click">
+                <FontIcon Glyph="&#xE72B;" FontSize="16" />
+            </Button>
 
-            <Frame x:Name="ContentFrame" Grid.Row="1" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE719;" FontSize="17" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                <TextBlock Text="番喵" FontWeight="SemiBold" VerticalAlignment="Center" />
+            </StackPanel>
+
+            <Grid x:Name="TitleBarDragRegion" Grid.Column="2" Background="Transparent" />
+
+            <Button
+                x:Name="AccountButton"
+                Grid.Column="3"
+                MinWidth="44"
+                Height="40"
+                Padding="8,4"
+                VerticalAlignment="Center"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="AccountButton_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="30" Height="30" CornerRadius="15" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                        <Image x:Name="AccountAvatar" Stretch="UniformToFill" />
+                    </Border>
+                    <TextBlock x:Name="AccountText" Text="登录" VerticalAlignment="Center" />
+                </StackPanel>
+            </Button>
         </Grid>
-    </NavigationView>
+
+        <NavigationView
+            x:Name="RootNavigation"
+            Grid.Row="1"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            PaneDisplayMode="Auto"
+            SelectionChanged="RootNavigation_SelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="时间胶囊" Icon="Home" Tag="home" />
+                <NavigationViewItem Content="收藏" Icon="Library" Tag="collections" />
+                <NavigationViewItem Content="搜索" Icon="Find" Tag="search" />
+            </NavigationView.MenuItems>
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="设置" Icon="Setting" Tag="settings" />
+            </NavigationView.FooterMenuItems>
+
+            <Frame x:Name="ContentFrame" />
+        </NavigationView>
+    </Grid>
 </Window>

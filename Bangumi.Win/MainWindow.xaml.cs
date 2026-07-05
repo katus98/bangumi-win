@@ -1,10 +1,13 @@
 using Bangumi.Win.Models;
 using Bangumi.Win.Services;
 using Bangumi.Win.Views;
+using Microsoft.UI;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using System;
+using WinRT.Interop;
 
 namespace Bangumi.Win;
 
@@ -15,6 +18,8 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ConfigureTitleBar();
+        ContentFrame.Navigated += (_, _) => UpdateBackButton();
         AppServices.AuthStateChanged += OnAuthStateChanged;
         Navigate(AppServices.TokenStore.HasToken ? "home" : "home");
         _ = RefreshAccountAsync();
@@ -24,11 +29,11 @@ public sealed partial class MainWindow : Window
     {
         if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
-            Navigate(tag);
+            Navigate(tag, clearBackStack: true);
         }
     }
 
-    private void Navigate(string tag)
+    private void Navigate(string tag, bool clearBackStack = false)
     {
         var pageType = tag switch
         {
@@ -42,7 +47,49 @@ public sealed partial class MainWindow : Window
         if (ContentFrame.CurrentSourcePageType != pageType)
         {
             ContentFrame.Navigate(pageType);
+            if (clearBackStack)
+            {
+                ContentFrame.BackStack.Clear();
+                UpdateBackButton();
+            }
         }
+    }
+
+    private void TitleBackButton_Click(object sender, RoutedEventArgs e)
+    {
+        if (ContentFrame.CanGoBack)
+        {
+            ContentFrame.GoBack();
+        }
+    }
+
+    private void UpdateBackButton()
+    {
+        TitleBackButton.Visibility = ContentFrame.CanGoBack ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ConfigureTitleBar()
+    {
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(TitleBarDragRegion);
+
+        var windowHandle = WindowNative.GetWindowHandle(this);
+        var windowId = Win32Interop.GetWindowIdFromWindow(windowHandle);
+        var appWindow = AppWindow.GetFromWindowId(windowId);
+        appWindow.Title = "番喵";
+
+        if (!AppWindowTitleBar.IsCustomizationSupported())
+        {
+            return;
+        }
+
+        var titleBar = appWindow.TitleBar;
+        titleBar.ButtonBackgroundColor = Colors.Transparent;
+        titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        titleBar.ButtonHoverBackgroundColor = Colors.Transparent;
+        titleBar.ButtonPressedBackgroundColor = Colors.Transparent;
+        titleBar.ButtonForegroundColor = Colors.White;
+        titleBar.ButtonInactiveForegroundColor = Colors.Gray;
     }
 
     private async void AccountButton_Click(object sender, RoutedEventArgs e)
@@ -64,7 +111,7 @@ public sealed partial class MainWindow : Window
 
         var dialog = new ContentDialog
         {
-            Title = "Bangumi 账号",
+            Title = "番喵账号",
             Content = panel,
             PrimaryButtonText = "登录/更新",
             SecondaryButtonText = AppServices.TokenStore.HasToken ? "退出登录" : string.Empty,

@@ -149,7 +149,7 @@ public sealed record UserEpisodeCollection(
         _ => "未知"
     };
 
-    public string ActionLabel => Type == 0 ? "-" : StatusLabel;
+    public string ActionLabel => Type == 0 ? "未收藏" : StatusLabel;
 
     public bool IsDone => Type == 2;
 }

@@ -18,6 +18,7 @@ public sealed partial class SubjectDetailPage : Page
     private SubjectCollection? _collection;
     private readonly ObservableCollection<SubjectComment> _comments = [];
     private List<UserEpisodeCollection> _episodes = [];
+    private List<EpisodeStatusRow> _episodeRows = [];
     private bool _isLoadingComments;
     private bool _commentsFinished;
     private int _commentOffset;
@@ -34,14 +35,6 @@ public sealed partial class SubjectDetailPage : Page
         if (e.Parameter is int subjectId)
         {
             await LoadSubjectAsync(subjectId);
-        }
-    }
-
-    private void Back_Click(object sender, RoutedEventArgs e)
-    {
-        if (Frame.CanGoBack)
-        {
-            Frame.GoBack();
         }
     }
 
@@ -70,6 +63,11 @@ public sealed partial class SubjectDetailPage : Page
             item.Click += async (_, _) => await UpdateCollectionStatusAsync((int)item.Tag);
             flyout.Items.Add(item);
         }
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        var cancelItem = new MenuFlyoutItem { Text = "取消收藏", IsEnabled = _collection is not null };
+        cancelItem.Click += async (_, _) => await DeleteCollectionAsync();
+        flyout.Items.Add(cancelItem);
 
         flyout.ShowAt(button);
     }
@@ -114,6 +112,7 @@ public sealed partial class SubjectDetailPage : Page
         EpisodeStatusList.ItemsSource = null;
         EpisodeEmptyText.Visibility = Visibility.Visible;
         _episodes = [];
+        _episodeRows = [];
 
         if (_subject is null || !AppServices.TokenStore.HasToken)
         {
@@ -130,9 +129,10 @@ public sealed partial class SubjectDetailPage : Page
             {
                 var episodes = await AppServices.ApiClient.GetEpisodeCollectionsAsync(_subject.Id);
                 _episodes = episodes.Data.OrderBy(item => item.Episode.Sort).ToList();
-                EpisodeStatusList.ItemsSource = _episodes;
-                EpisodeStatusList.Visibility = _episodes.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
-                EpisodeEmptyText.Visibility = _episodes.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
+                _episodeRows = _episodes.Select(item => new EpisodeStatusRow(item)).ToList();
+                EpisodeStatusList.ItemsSource = _episodeRows;
+                EpisodeStatusList.Visibility = _episodeRows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+                EpisodeEmptyText.Visibility = _episodeRows.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
             }
         }
         catch
@@ -143,21 +143,21 @@ public sealed partial class SubjectDetailPage : Page
 
     private void EpisodeStatus_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not Button button || button.Tag is not UserEpisodeCollection episode)
+        if (sender is not Button button || button.Tag is not EpisodeStatusRow row)
         {
             return;
         }
 
         var flyout = new MenuFlyout();
-        foreach (var option in new[] { ("-", 0), ("想看", 1), ("看过", 2), ("抛弃", 3) })
+        foreach (var option in new[] { ("取消收藏", 0), ("想看", 1), ("看过", 2), ("抛弃", 3) })
         {
             var item = new MenuFlyoutItem { Text = option.Item1, Tag = option.Item2 };
-            item.Click += async (_, _) => await UpdateEpisodeAsync(episode, (int)item.Tag, includePrevious: false);
+            item.Click += async (_, _) => await UpdateEpisodeAsync(row.Source, (int)item.Tag, includePrevious: false);
             flyout.Items.Add(item);
         }
 
         var watchedTo = new MenuFlyoutItem { Text = "看到" };
-        watchedTo.Click += async (_, _) => await UpdateEpisodeAsync(episode, 2, includePrevious: true);
+        watchedTo.Click += async (_, _) => await UpdateEpisodeAsync(row.Source, 2, includePrevious: true);
         flyout.Items.Add(watchedTo);
         flyout.ShowAt(button);
     }
@@ -181,6 +181,25 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
+    private async System.Threading.Tasks.Task DeleteCollectionAsync()
+    {
+        if (_subject is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await AppServices.ApiClient.DeleteCollectionAsync(_subject.Id);
+            await LoadCollectionAsync();
+            ShowStatus("已取消收藏。", InfoBarSeverity.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"取消收藏失败：{ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
     private async System.Threading.Tasks.Task UpdateEpisodeAsync(UserEpisodeCollection episode, int status, bool includePrevious)
     {
         if (_subject is null)
@@ -197,7 +216,7 @@ public sealed partial class SubjectDetailPage : Page
         try
         {
             var ids = includePrevious
-                ? _episodes.Where(item => item.Episode.Sort <= episode.Episode.Sort).Select(item => item.Episode.Id).ToList()
+                ? _episodeRows.Where(item => item.Source.Episode.Sort <= episode.Episode.Sort).Select(item => item.Source.Episode.Id).ToList()
                 : [episode.Episode.Id];
             await AppServices.ApiClient.UpdateEpisodeCollectionsAsync(_subject.Id, ids, status);
             await LoadCollectionAsync();
@@ -272,8 +291,14 @@ public sealed partial class SubjectDetailPage : Page
 
         CollectionStatusButton.Content = status is int value
             ? BangumiConstants.CollectionStatusLabel(_subject.Type, value)
-            : "收藏";
-        CollectionStatusButton.Background = new SolidColorBrush(status switch
+            : "未收藏";
+        CollectionStatusButton.Background = StatusBackground(status);
+        CollectionStatusButton.Foreground = StatusForeground(status);
+    }
+
+    private static SolidColorBrush StatusBackground(int? status)
+    {
+        return new SolidColorBrush(status switch
         {
             1 => Microsoft.UI.Colors.SteelBlue,
             2 => Microsoft.UI.Colors.SeaGreen,
@@ -282,7 +307,11 @@ public sealed partial class SubjectDetailPage : Page
             5 => Microsoft.UI.Colors.IndianRed,
             _ => Microsoft.UI.Colors.LightGray
         });
-        CollectionStatusButton.Foreground = new SolidColorBrush(status is null ? Microsoft.UI.Colors.Black : Microsoft.UI.Colors.White);
+    }
+
+    private static SolidColorBrush StatusForeground(int? status)
+    {
+        return new SolidColorBrush(status is null or 0 ? Microsoft.UI.Colors.Black : Microsoft.UI.Colors.White);
     }
 
     private static string BuildProgressHint(SubjectSummary subject)
@@ -301,5 +330,14 @@ public sealed partial class SubjectDetailPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+    }
+
+    private sealed class EpisodeStatusRow(UserEpisodeCollection source)
+    {
+        public UserEpisodeCollection Source { get; } = source;
+        public EpisodeSummary Episode => Source.Episode;
+        public string ActionLabel => Source.ActionLabel;
+        public SolidColorBrush ActionBackground => StatusBackground(Source.Type);
+        public SolidColorBrush ActionForeground => StatusForeground(Source.Type);
     }
 }

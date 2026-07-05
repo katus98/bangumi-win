@@ -126,6 +126,13 @@ public sealed class BangumiApiClient
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task DeleteCollectionAsync(int subjectId, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Delete, $"/v0/users/-/collections/{subjectId}");
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+    }
+
     public async Task<SubjectSummary> GetSubjectAsync(int subjectId, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Get, $"/v0/subjects/{subjectId}");

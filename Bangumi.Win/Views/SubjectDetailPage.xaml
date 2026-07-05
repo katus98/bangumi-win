@@ -7,17 +7,12 @@
     <Grid Padding="28" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <CommandBar DefaultLabelPosition="Right" Background="Transparent">
-            <AppBarButton Icon="Back" Label="返回" Click="Back_Click" />
-        </CommandBar>
+        <InfoBar x:Name="StatusBar" IsOpen="False" />
 
-        <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
-
-        <ScrollViewer x:Name="DetailScrollViewer" Grid.Row="2" ViewChanged="DetailScrollViewer_ViewChanged">
+        <ScrollViewer x:Name="DetailScrollViewer" Grid.Row="1" ViewChanged="DetailScrollViewer_ViewChanged">
             <Grid ColumnSpacing="24" RowSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="180" />
@@ -57,7 +52,14 @@
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="{Binding Episode.NumberText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                                         <TextBlock Grid.Column="1" Text="{Binding Episode.DisplayName}" TextWrapping="Wrap" />
-                                        <Button Grid.Column="2" MinWidth="72" Content="{Binding ActionLabel}" Click="EpisodeStatus_Click" Tag="{Binding}" />
+                                        <Button
+                                            Grid.Column="2"
+                                            MinWidth="86"
+                                            Content="{Binding ActionLabel}"
+                                            Background="{Binding ActionBackground}"
+                                            Foreground="{Binding ActionForeground}"
+                                            Click="EpisodeStatus_Click"
+                                            Tag="{Binding}" />
                                     </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>

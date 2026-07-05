@@ -15,7 +15,7 @@
   <mp:PhoneIdentity PhoneProductId="465499ae-5c88-43d4-90f5-48500399d0d1" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>Bangumi</DisplayName>
+    <DisplayName>番喵</DisplayName>
     <PublisherDisplayName>katus</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -34,8 +34,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="Bangumi"
-        Description="A Windows 11 client for Bangumi"
+        DisplayName="番喵"
+        Description="Windows 11 风格的 Bangumi 第三方客户端"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">
