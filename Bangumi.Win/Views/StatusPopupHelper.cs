@@ -13,23 +13,37 @@ internal static class StatusPopupHelper
 
     public static void Show(Popup popup, InfoBar infoBar, string message, InfoBarSeverity severity, XamlRoot? xamlRoot)
     {
-        if (xamlRoot is null)
-        {
-            return;
-        }
+        Show(popup, infoBar, message, severity, xamlRoot, retryWhenRootMissing: true);
+    }
 
+    private static void Show(Popup popup, InfoBar infoBar, string message, InfoBarSeverity severity, XamlRoot? xamlRoot, bool retryWhenRootMissing)
+    {
         try
         {
+            var root = xamlRoot ?? popup.XamlRoot ?? infoBar.XamlRoot;
+            if (root is null)
+            {
+                if (retryWhenRootMissing)
+                {
+                    _ = popup.DispatcherQueue.TryEnqueue(() => Show(popup, infoBar, message, severity, null, retryWhenRootMissing: false));
+                }
+
+                return;
+            }
+
+            popup.XamlRoot = root;
             infoBar.Message = message;
             infoBar.Severity = severity;
             infoBar.IsOpen = true;
             popup.IsOpen = true;
             infoBar.UpdateLayout();
-            Position(popup, infoBar, xamlRoot);
+            Position(popup, infoBar, root);
         }
-        catch (InvalidOperationException)
+        catch (Exception)
         {
-            Hide(popup, infoBar);
+            infoBar.Message = message;
+            infoBar.Severity = severity;
+            infoBar.IsOpen = true;
         }
     }
 

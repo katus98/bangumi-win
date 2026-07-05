@@ -45,7 +45,6 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="76" />
                             <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <Border Width="64" Height="88" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4">
                             <Image Source="{Binding Subject.ImageUrl}" Stretch="UniformToFill" />
@@ -55,9 +54,6 @@
                             <TextBlock Text="{Binding Subject.Subtitle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding StatusLabel}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                             <TextBlock Text="{Binding ProgressLabel}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Button Content="管理" Click="Manage_Click" Tag="{Binding}" />
                         </StackPanel>
                     </Grid>
                 </DataTemplate>
