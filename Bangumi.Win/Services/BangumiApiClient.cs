@@ -132,6 +132,24 @@ public sealed class BangumiApiClient
         return await SendAsync<SubjectSummary>(request, cancellationToken);
     }
 
+    public async Task<PagedResponse<SubjectComment>> GetSubjectCommentsAsync(int subjectId, int offset = 0, CancellationToken cancellationToken = default)
+    {
+        const int limit = 20;
+        var page = Math.Max(1, (offset / limit) + 1);
+        var path = page <= 1
+            ? $"https://bgm.tv/subject/{subjectId}/comments"
+            : $"https://bgm.tv/subject/{subjectId}/comments?page={page}";
+        using var request = CreateRequest(HttpMethod.Get, path);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+
+        var html = await response.Content.ReadAsStringAsync(cancellationToken);
+        var comments = ParseSubjectCommentsHtml(html);
+        var hasMore = comments.Count >= limit;
+        var total = offset + comments.Count + (hasMore ? limit : 0);
+        return new PagedResponse<SubjectComment>(comments, total, limit, offset);
+    }
+
     public async Task<PersonDetail> GetPersonAsync(int personId, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Get, $"/v0/persons/{personId}");
@@ -244,7 +262,7 @@ public sealed class BangumiApiClient
             html = html[timelineStart..];
         }
 
-        foreach (Match match in Regex.Matches(html, @"<h4\s+class=""Header"">(?<date>.*?)</h4>|<li[^>]*class=""[^""]*tml_item[^""]*""[^>]*>(?<item>.*?)</li>", RegexOptions.Singleline | RegexOptions.IgnoreCase))
+        foreach (Match match in Regex.Matches(html, @"<h4[^>]*class=""[^""]*Header[^""]*""[^>]*>(?<date>.*?)</h4>|<li[^>]*class=""[^""]*tml_item[^""]*""[^>]*>(?<item>.*?)</li>", RegexOptions.Singleline | RegexOptions.IgnoreCase))
         {
             if (match.Groups["date"].Success)
             {
@@ -260,24 +278,76 @@ public sealed class BangumiApiClient
             var detail = detailMatch.Success ? StripHtml(detailMatch.Groups["detail"].Value) : string.Empty;
             var imageUrl = ExtractTimelineImageUrl(itemHtml);
             var subjectId = ExtractTimelineSubjectId(itemHtml);
+            var createdAt = ExtractTimelineCreatedAt(itemHtml) ?? currentDate;
 
             if (!string.IsNullOrWhiteSpace(title))
             {
-                entries.Add(new TimelineEntry(title, detail, username, currentDate, imageUrl, subjectId));
+                entries.Add(new TimelineEntry(title, detail, username, createdAt, imageUrl, subjectId));
             }
         }
 
         return entries
-            .OrderByDescending(item => item.CreatedAt)
+            .OrderByDescending(item => item.CreatedAt ?? DateTimeOffset.MinValue)
             .Take(30)
             .ToList();
     }
 
     private static DateTimeOffset? TryParseTimelineDate(string value)
     {
-        return DateTimeOffset.TryParse(value, out var parsed)
-            ? parsed
-            : null;
+        if (value.Contains("今天", StringComparison.Ordinal))
+        {
+            return DateTimeOffset.Now.Date;
+        }
+
+        if (value.Contains("昨天", StringComparison.Ordinal))
+        {
+            return DateTimeOffset.Now.Date.AddDays(-1);
+        }
+
+        if (DateTimeOffset.TryParse(value, out var parsed))
+        {
+            return parsed;
+        }
+
+        var match = Regex.Match(value, @"(?<year>\d{4})\D+(?<month>\d{1,2})\D+(?<day>\d{1,2})");
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var year = int.Parse(match.Groups["year"].Value);
+        var month = int.Parse(match.Groups["month"].Value);
+        var day = int.Parse(match.Groups["day"].Value);
+        return new DateTimeOffset(year, month, day, 0, 0, 0, DateTimeOffset.Now.Offset);
+    }
+
+    private static List<SubjectComment> ParseSubjectCommentsHtml(string html)
+    {
+        var comments = new List<SubjectComment>();
+        foreach (Match match in Regex.Matches(html, @"<div\s+class=""item\s+clearit""[\s\S]*?(?=<div\s+class=""item\s+clearit""|<div\s+id=""footer""|$)", RegexOptions.IgnoreCase))
+        {
+            var itemHtml = match.Value;
+            var commentMatch = Regex.Match(itemHtml, @"<p\s+class=""comment""[^>]*>(?<comment>[\s\S]*?)</p>", RegexOptions.IgnoreCase);
+            if (!commentMatch.Success)
+            {
+                continue;
+            }
+
+            var userMatch = Regex.Match(itemHtml, @"<a\s+href=""/user/[^""]+""\s+class=""l""[^>]*>(?<user>[\s\S]*?)</a>", RegexOptions.IgnoreCase);
+            var dateMatch = Regex.Match(itemHtml, @"<small\s+class=""grey"">\s*@\s*(?<date>.*?)</small>", RegexOptions.IgnoreCase);
+            var rateMatch = Regex.Match(itemHtml, @"stars(?<rate>\d+)", RegexOptions.IgnoreCase);
+            var rate = rateMatch.Success && int.TryParse(rateMatch.Groups["rate"].Value, out var parsedRate) ? parsedRate : (int?)null;
+            var createdAt = dateMatch.Success && DateTimeOffset.TryParse(StripHtml(dateMatch.Groups["date"].Value), out var parsedDate)
+                ? parsedDate
+                : (DateTimeOffset?)null;
+            comments.Add(new SubjectComment(
+                userMatch.Success ? StripHtml(userMatch.Groups["user"].Value) : string.Empty,
+                StripHtml(commentMatch.Groups["comment"].Value),
+                createdAt,
+                rate));
+        }
+
+        return comments;
     }
 
     private static string StripHtml(string html)
@@ -311,6 +381,14 @@ public sealed class BangumiApiClient
 
         var hrefMatch = Regex.Match(html, @"/subject/(?<id>\d+)", RegexOptions.IgnoreCase);
         return hrefMatch.Success && int.TryParse(hrefMatch.Groups["id"].Value, out var hrefId) ? hrefId : null;
+    }
+
+    private static DateTimeOffset? ExtractTimelineCreatedAt(string html)
+    {
+        var match = Regex.Match(html, @"<span[^>]+title=""(?<date>\d{4}[-/]\d{1,2}[-/]\d{1,2}\s+\d{1,2}:\d{2})""[^>]*class=""[^""]*titleTip[^""]*""", RegexOptions.IgnoreCase);
+        return match.Success && DateTimeOffset.TryParse(match.Groups["date"].Value, out var parsed)
+            ? parsed
+            : null;
     }
 
     private static string? GetString(JsonElement element, string propertyName)

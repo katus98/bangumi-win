@@ -30,7 +30,8 @@ public sealed record SubjectSummary(
     [property: JsonPropertyName("images")] SubjectImages? Images,
     [property: JsonPropertyName("eps")] int? Eps,
     [property: JsonPropertyName("volumes")] int? Volumes,
-    [property: JsonPropertyName("score")] double? Score)
+    [property: JsonPropertyName("score")] double? Score,
+    [property: JsonPropertyName("tags")] List<SubjectTag>? Tags)
 {
     public string DisplayName => string.IsNullOrWhiteSpace(NameCn) ? Name : NameCn!;
     public string Subtitle => string.IsNullOrWhiteSpace(NameCn) || NameCn == Name ? TypeLabel : $"{Name} · {TypeLabel}";
@@ -52,6 +53,13 @@ public sealed record SubjectImages(
     [property: JsonPropertyName("medium")] string? Medium,
     [property: JsonPropertyName("small")] string? Small,
     [property: JsonPropertyName("grid")] string? Grid);
+
+public sealed record SubjectTag(
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("count")] int Count)
+{
+    public string DisplayText => Count > 0 ? $"{Name} {Count}" : Name;
+}
 
 public sealed record SubjectCollection(
     [property: JsonPropertyName("subject")] SubjectSummary Subject,
@@ -94,7 +102,7 @@ public sealed record SubjectCollection(
 
 public sealed record TimelineEntry(string Title, string Detail, string UserName, DateTimeOffset? CreatedAt, string ImageUrl, int? SubjectId)
 {
-    public string TimeText => CreatedAt?.LocalDateTime.ToString("yyyy-MM-dd HH:mm") ?? "未知时间";
+    public string TimeText => CreatedAt?.LocalDateTime.ToString("yyyy-MM-dd HH:mm") ?? "暂无时间";
     public bool HasImage => !string.IsNullOrWhiteSpace(ImageUrl);
     public bool HasSubject => SubjectId is not null;
 }
@@ -141,7 +149,31 @@ public sealed record UserEpisodeCollection(
         _ => "未知"
     };
 
+    public string ActionLabel => Type == 0 ? "-" : StatusLabel;
+
     public bool IsDone => Type == 2;
+}
+
+public sealed record SubjectComment(string UserName, string Content, DateTimeOffset? CreatedAt, int? Rate)
+{
+    public string MetaText
+    {
+        get
+        {
+            var parts = new List<string> { string.IsNullOrWhiteSpace(UserName) ? "Bangumi 用户" : UserName };
+            if (Rate is > 0)
+            {
+                parts.Add($"评分 {Rate}");
+            }
+
+            if (CreatedAt is DateTimeOffset createdAt)
+            {
+                parts.Add(createdAt.LocalDateTime.ToString("yyyy-MM-dd HH:mm"));
+            }
+
+            return string.Join(" · ", parts);
+        }
+    }
 }
 
 public sealed record PersonDetail(

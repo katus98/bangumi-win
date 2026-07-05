@@ -17,7 +17,7 @@
 
         <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
 
-        <ScrollViewer Grid.Row="2">
+        <ScrollViewer x:Name="DetailScrollViewer" Grid.Row="2" ViewChanged="DetailScrollViewer_ViewChanged">
             <Grid ColumnSpacing="24" RowSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="180" />
@@ -26,49 +26,69 @@
                 <Border Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Top">
                     <Image x:Name="CoverImage" Stretch="UniformToFill" />
                 </Border>
-                <StackPanel Grid.Column="1" Spacing="10">
-                    <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1" Spacing="16">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
+                        <Button x:Name="CollectionStatusButton" Grid.Column="1" MinWidth="108" Padding="14,8" VerticalAlignment="Top" Click="CollectionStatus_Click" />
+                    </Grid>
                     <TextBlock x:Name="SubtitleText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                    <TextBlock x:Name="ScoreText" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                    <TextBlock x:Name="ProgressHintText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <Button x:Name="CollectionStatusButton" HorizontalAlignment="Stretch" Click="CollectionStatus_Click">
-                        <Grid Padding="12" ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Spacing="4">
-                                <TextBlock Text="收藏状态" FontWeight="SemiBold" />
-                                <TextBlock x:Name="CollectionStatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                            </StackPanel>
-                            <FontIcon Grid.Column="1" Glyph="&#xE70F;" FontSize="14" />
-                        </Grid>
-                    </Button>
-                    <ListView x:Name="EpisodeStatusList" MaxHeight="360" SelectionMode="None" Visibility="Collapsed">
-                        <ListView.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Padding="4,8" ColumnSpacing="12">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="84" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding Episode.NumberText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <StackPanel Grid.Column="1" Spacing="2">
-                                        <TextBlock Text="{Binding Episode.DisplayName}" TextWrapping="Wrap" />
-                                        <TextBlock Text="{Binding StatusLabel}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Padding="12,6" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                            <TextBlock x:Name="TypeBadgeText" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" FontWeight="SemiBold" />
+                        </Border>
+                        <TextBlock x:Name="ScoreText" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock x:Name="ProgressHintText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="章节" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <ListView x:Name="EpisodeStatusList" MaxHeight="360" SelectionMode="None" Visibility="Collapsed">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="4,8" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="84" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Episode.NumberText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Episode.DisplayName}" TextWrapping="Wrap" />
+                                        <Button Grid.Column="2" MinWidth="72" Content="{Binding ActionLabel}" Click="EpisodeStatus_Click" Tag="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock x:Name="EpisodeEmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="暂无章节信息" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="标签" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <TextBlock x:Name="TagsText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="简介" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <TextBlock x:Name="SummaryText" TextWrapping="Wrap" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="吐槽" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <ListView x:Name="CommentList" SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Padding="4,10" Spacing="4">
+                                        <TextBlock Text="{Binding MetaText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
                                     </StackPanel>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-                                        <Button Content="想看" Click="EpisodeWish_Click" Tag="{Binding}" />
-                                        <Button Content="看过" Click="EpisodeDone_Click" Tag="{Binding}" />
-                                        <Button Content="抛弃" Click="EpisodeDropped_Click" Tag="{Binding}" />
-                                        <Button Content="清除" Click="EpisodeNone_Click" Tag="{Binding}" />
-                                    </StackPanel>
-                                </Grid>
-                            </DataTemplate>
-                        </ListView.ItemTemplate>
-                    </ListView>
-                    <TextBlock x:Name="SummaryText" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                        <TextBlock x:Name="CommentStatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
                 </StackPanel>
             </Grid>
         </ScrollViewer>
