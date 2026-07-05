@@ -20,7 +20,7 @@
 
         <Grid x:Name="AppTitleBar" Background="Transparent" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="48" />
+                <ColumnDefinition x:Name="TitleBackColumn" Width="0" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -50,9 +50,9 @@
                 x:Name="AccountButton"
                 Grid.Column="3"
                 MinWidth="44"
-                Height="40"
-                Padding="8,4"
-                VerticalAlignment="Center"
+                Height="48"
+                Padding="10,0"
+                VerticalAlignment="Stretch"
                 Background="Transparent"
                 BorderThickness="0"
                 Click="AccountButton_Click">

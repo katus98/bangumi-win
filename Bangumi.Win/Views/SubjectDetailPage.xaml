@@ -10,35 +10,51 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
+        <Image x:Name="BackdropImage" Grid.RowSpan="2" Stretch="UniformToFill" Opacity="0.18" IsHitTestVisible="False" />
+        <Rectangle Grid.RowSpan="2" Fill="{ThemeResource ApplicationPageBackgroundThemeBrush}" Opacity="0.88" IsHitTestVisible="False" />
+
         <InfoBar x:Name="StatusBar" IsOpen="False" />
 
         <ScrollViewer x:Name="DetailScrollViewer" Grid.Row="1" ViewChanged="DetailScrollViewer_ViewChanged">
-            <Grid ColumnSpacing="24" RowSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="180" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <Border Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Top">
-                    <Image x:Name="CoverImage" Stretch="UniformToFill" />
-                </Border>
-                <StackPanel Grid.Column="1" Spacing="16">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
-                        <Button x:Name="CollectionStatusButton" Grid.Column="1" MinWidth="108" Padding="14,8" VerticalAlignment="Top" Click="CollectionStatus_Click" />
-                    </Grid>
-                    <TextBlock x:Name="SubtitleText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border Padding="12,6" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
-                            <TextBlock x:Name="TypeBadgeText" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" FontWeight="SemiBold" />
-                        </Border>
-                        <TextBlock x:Name="ScoreText" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                        <TextBlock x:Name="ProgressHintText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    </StackPanel>
+            <Grid RowSpacing="18">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
+                <Border Padding="20" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <Grid ColumnSpacing="24" MinHeight="240">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Center">
+                            <Image x:Name="CoverImage" Stretch="UniformToFill" />
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Spacing="14" VerticalAlignment="Center">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
+                                <Button x:Name="CollectionStatusButton" Grid.Column="1" MinWidth="108" Padding="14,8" VerticalAlignment="Top" Click="CollectionStatus_Click" />
+                            </Grid>
+                            <TextBlock x:Name="SubtitleText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Border Padding="12,6" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                    <TextBlock x:Name="TypeBadgeText" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" FontWeight="SemiBold" />
+                                </Border>
+                                <TextBlock x:Name="ScoreText" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                <TextBlock x:Name="ProgressHintText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <StackPanel Grid.Row="1" Spacing="18">
                     <StackPanel Spacing="8">
                         <TextBlock Text="章节" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <ListView x:Name="EpisodeStatusList" MaxHeight="360" SelectionMode="None" Visibility="Collapsed">
@@ -69,7 +85,26 @@
 
                     <StackPanel Spacing="8">
                         <TextBlock Text="标签" Style="{ThemeResource SubtitleTextBlockStyle}" />
-                        <TextBlock x:Name="TagsText" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ItemsControl x:Name="TagsItems">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsWrapGrid Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,8,8" Padding="10,6" CornerRadius="4" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                            <Border MinWidth="24" Padding="6,1" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                                                <TextBlock Text="{Binding Count}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" FontSize="12" HorizontalAlignment="Center" />
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock x:Name="TagsEmptyText" Text="暂无标签" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
                     </StackPanel>
 
                     <StackPanel Spacing="8">

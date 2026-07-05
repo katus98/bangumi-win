@@ -83,11 +83,13 @@ public sealed partial class SubjectDetailPage : Page
             TypeBadgeText.Text = _subject.TypeLabel;
             ScoreText.Text = _subject.Score is double score ? $"评分 {score:0.0}" : "暂无评分";
             ProgressHintText.Text = BuildProgressHint(_subject);
-            TagsText.Text = _subject.Tags is { Count: > 0 }
-                ? string.Join(" · ", _subject.Tags.Take(16).Select(tag => tag.DisplayText))
-                : "暂无标签";
+            var tags = _subject.Tags is { Count: > 0 } ? _subject.Tags.Take(16).ToList() : [];
+            TagsItems.ItemsSource = tags;
+            TagsEmptyText.Visibility = tags.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             SummaryText.Text = _subject.Summary ?? "暂无简介";
-            CoverImage.Source = string.IsNullOrWhiteSpace(_subject.ImageUrl) ? null : new BitmapImage(new Uri(_subject.ImageUrl));
+            var cover = string.IsNullOrWhiteSpace(_subject.ImageUrl) ? null : new BitmapImage(new Uri(_subject.ImageUrl));
+            CoverImage.Source = cover;
+            BackdropImage.Source = cover;
             CommentList.ItemsSource = _comments;
             _comments.Clear();
             _commentOffset = 0;

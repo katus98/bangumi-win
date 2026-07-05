@@ -65,7 +65,9 @@ public sealed partial class MainWindow : Window
 
     private void UpdateBackButton()
     {
-        TitleBackButton.Visibility = ContentFrame.CanGoBack ? Visibility.Visible : Visibility.Collapsed;
+        var canGoBack = ContentFrame.CanGoBack;
+        TitleBackButton.Visibility = canGoBack ? Visibility.Visible : Visibility.Collapsed;
+        TitleBackColumn.Width = new GridLength(canGoBack ? 48 : 0);
     }
 
     private void ConfigureTitleBar()
@@ -84,6 +86,7 @@ public sealed partial class MainWindow : Window
         }
 
         var titleBar = appWindow.TitleBar;
+        titleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         titleBar.ButtonBackgroundColor = Colors.Transparent;
         titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
         titleBar.ButtonHoverBackgroundColor = Colors.Transparent;
