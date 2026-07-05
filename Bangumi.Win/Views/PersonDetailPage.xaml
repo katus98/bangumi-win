@@ -7,7 +7,6 @@
     <Grid Padding="28" RowSpacing="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -16,9 +15,11 @@
             <AppBarButton Icon="Add" Label="收藏人物" Click="Collect_Click" />
         </CommandBar>
 
-        <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
+        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
+            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
+        </Popup>
 
-        <ScrollViewer Grid.Row="2">
+        <ScrollViewer Grid.Row="1">
             <Grid ColumnSpacing="24" RowSpacing="12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="180" />

@@ -162,7 +162,7 @@ public sealed partial class SearchPage : Page
 
             _offset += page.Count;
             _hasMore = page.Count == PageSize;
-            StatusBar.IsOpen = false;
+            HideStatus();
         }
         catch (Exception ex)
         {
@@ -228,6 +228,15 @@ public sealed partial class SearchPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+        StatusPopup.HorizontalOffset = 28;
+        StatusPopup.VerticalOffset = 12;
+        StatusPopup.IsOpen = true;
+    }
+
+    private void HideStatus()
+    {
+        StatusBar.IsOpen = false;
+        StatusPopup.IsOpen = false;
     }
 
     private void UpdateTabStyles()

@@ -84,7 +84,7 @@ public sealed partial class SubjectDetailPage : Page
             TitleText.Text = _subject.DisplayName;
             SubtitleText.Text = _subject.Subtitle;
             TypeBadgeText.Text = _subject.TypeLabel;
-            ScoreText.Text = _subject.Score is double score ? $"评分 {score:0.0}" : "暂无评分";
+            ScoreText.Text = _subject.DisplayScore is double score ? $"评分 {score:0.0}" : "暂无评分";
             ProgressHintText.Text = BuildProgressHint(_subject);
             var tags = _subject.Tags is { Count: > 0 } ? _subject.Tags.Take(16).ToList() : [];
             TagsItems.ItemsSource = tags;
@@ -101,7 +101,7 @@ public sealed partial class SubjectDetailPage : Page
 
             await LoadCollectionAsync();
             await LoadCommentsAsync(reset: true);
-            StatusBar.IsOpen = false;
+            HideStatus();
         }
         catch (Exception ex)
         {
@@ -345,6 +345,15 @@ public sealed partial class SubjectDetailPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+        StatusPopup.HorizontalOffset = 28;
+        StatusPopup.VerticalOffset = 12;
+        StatusPopup.IsOpen = true;
+    }
+
+    private void HideStatus()
+    {
+        StatusBar.IsOpen = false;
+        StatusPopup.IsOpen = false;
     }
 
     private sealed class EpisodeStatusRow(UserEpisodeCollection source) : INotifyPropertyChanged

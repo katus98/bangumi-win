@@ -31,11 +31,13 @@ public sealed record SubjectSummary(
     [property: JsonPropertyName("eps")] int? Eps,
     [property: JsonPropertyName("volumes")] int? Volumes,
     [property: JsonPropertyName("score")] double? Score,
+    [property: JsonPropertyName("rating")] SubjectRating? Rating,
     [property: JsonPropertyName("tags")] List<SubjectTag>? Tags)
 {
     public string DisplayName => string.IsNullOrWhiteSpace(NameCn) ? Name : NameCn!;
     public string Subtitle => string.IsNullOrWhiteSpace(NameCn) || NameCn == Name ? TypeLabel : $"{Name} · {TypeLabel}";
     public string ImageUrl => Images?.Medium ?? Images?.Common ?? Images?.Small ?? string.Empty;
+    public double? DisplayScore => Score ?? Rating?.Score;
     public string TypeLabel => Type switch
     {
         1 => "书籍",
@@ -46,6 +48,10 @@ public sealed record SubjectSummary(
         _ => "条目"
     };
 }
+
+public sealed record SubjectRating(
+    [property: JsonPropertyName("score")] double? Score,
+    [property: JsonPropertyName("total")] int? Total);
 
 public sealed record SubjectImages(
     [property: JsonPropertyName("large")] string? Large,

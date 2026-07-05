@@ -72,7 +72,7 @@ public sealed partial class PersonDetailPage : Page
                 PortraitImage.Source = new BitmapImage(new Uri(_person.ImageUrl));
             }
 
-            StatusBar.IsOpen = false;
+            HideStatus();
         }
         catch (Exception ex)
         {
@@ -85,5 +85,14 @@ public sealed partial class PersonDetailPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+        StatusPopup.HorizontalOffset = 28;
+        StatusPopup.VerticalOffset = 12;
+        StatusPopup.IsOpen = true;
+    }
+
+    private void HideStatus()
+    {
+        StatusBar.IsOpen = false;
+        StatusPopup.IsOpen = false;
     }
 }

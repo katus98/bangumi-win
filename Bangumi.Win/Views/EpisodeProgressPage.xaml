@@ -8,7 +8,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -28,9 +27,11 @@
                        TextWrapping="Wrap" />
         </StackPanel>
 
-        <InfoBar x:Name="StatusBar" Grid.Row="2" IsOpen="False" />
+        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
+            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
+        </Popup>
 
-        <ListView x:Name="EpisodeList" Grid.Row="3" SelectionMode="Multiple">
+        <ListView x:Name="EpisodeList" Grid.Row="2" SelectionMode="Multiple">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid Padding="4,10" ColumnSpacing="14">

@@ -118,5 +118,8 @@ public sealed partial class LoginPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+        StatusPopup.HorizontalOffset = 28;
+        StatusPopup.VerticalOffset = 12;
+        StatusPopup.IsOpen = true;
     }
 }

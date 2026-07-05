@@ -9,11 +9,10 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TextBlock Text="收藏管理" Style="{ThemeResource TitleTextBlockStyle}" />
+        <TextBlock Text="收藏" Style="{ThemeResource TitleTextBlockStyle}" />
 
         <StackPanel
             x:Name="SubjectTypeTabs"
@@ -29,11 +28,13 @@
             HorizontalAlignment="Center"
             Spacing="6" />
 
-        <InfoBar x:Name="StatusBar" Grid.Row="3" IsOpen="False" />
+        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
+            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
+        </Popup>
 
         <ListView
             x:Name="CollectionList"
-            Grid.Row="4"
+            Grid.Row="3"
             ContainerContentChanging="CollectionList_ContainerContentChanging"
             ItemClick="CollectionList_ItemClick"
             IsItemClickEnabled="True"

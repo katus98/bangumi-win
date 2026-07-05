@@ -73,7 +73,7 @@
             PaneDisplayMode="Auto"
             SelectionChanged="RootNavigation_SelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="时间胶囊" Icon="Home" Tag="home" />
+                <NavigationViewItem Content="时间胶囊" Icon="Clock" Tag="home" />
                 <NavigationViewItem Content="收藏" Icon="Library" Tag="collections" />
                 <NavigationViewItem Content="搜索" Icon="Find" Tag="search" />
             </NavigationView.MenuItems>

@@ -58,7 +58,7 @@ public sealed partial class EpisodeProgressPage : Page
             ShowStatus("正在加载单集进度...", InfoBarSeverity.Informational);
             var result = await AppServices.ApiClient.GetEpisodeCollectionsAsync(_subject.Id);
             EpisodeList.ItemsSource = result.Data.OrderBy(item => item.Episode.Sort).ToList();
-            StatusBar.IsOpen = false;
+            HideStatus();
         }
         catch (Exception ex)
         {
@@ -101,5 +101,14 @@ public sealed partial class EpisodeProgressPage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+        StatusPopup.HorizontalOffset = 28;
+        StatusPopup.VerticalOffset = 12;
+        StatusPopup.IsOpen = true;
+    }
+
+    private void HideStatus()
+    {
+        StatusBar.IsOpen = false;
+        StatusPopup.IsOpen = false;
     }
 }

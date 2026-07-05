@@ -103,7 +103,7 @@ public sealed partial class HomePage : Page
 
             _hasMore = pageItems.Count > 0;
             _page++;
-            StatusBar.IsOpen = false;
+            HideStatus();
         }
         catch (Exception ex)
         {
@@ -120,6 +120,15 @@ public sealed partial class HomePage : Page
         StatusBar.Message = message;
         StatusBar.Severity = severity;
         StatusBar.IsOpen = true;
+        StatusPopup.HorizontalOffset = 28;
+        StatusPopup.VerticalOffset = 12;
+        StatusPopup.IsOpen = true;
+    }
+
+    private void HideStatus()
+    {
+        StatusBar.IsOpen = false;
+        StatusPopup.IsOpen = false;
     }
 
     private static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject

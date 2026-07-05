@@ -9,7 +9,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -36,11 +35,13 @@
             HorizontalAlignment="Center"
             Spacing="8" />
 
-        <InfoBar x:Name="StatusBar" Grid.Row="3" IsOpen="False" />
+        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
+            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
+        </Popup>
 
         <ListView
             x:Name="ResultList"
-            Grid.Row="4"
+            Grid.Row="3"
             Loaded="ResultList_Loaded"
             ItemClick="ResultList_ItemClick"
             IsItemClickEnabled="True"
