@@ -54,8 +54,8 @@
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Row="1" Spacing="18">
-                    <StackPanel Spacing="8">
+                <StackPanel Grid.Row="1" Spacing="30">
+                    <StackPanel Spacing="10">
                         <TextBlock Text="章节" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <ListView x:Name="EpisodeStatusList" MaxHeight="360" SelectionMode="None" Visibility="Collapsed">
                             <ListView.ItemTemplate>
@@ -83,22 +83,20 @@
                         <TextBlock x:Name="EpisodeEmptyText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="暂无章节信息" />
                     </StackPanel>
 
-                    <StackPanel Spacing="8">
+                    <StackPanel Spacing="10">
                         <TextBlock Text="标签" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <ItemsControl x:Name="TagsItems">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <ItemsWrapGrid Orientation="Horizontal" />
+                                    <VariableSizedWrapGrid Orientation="Horizontal" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Margin="0,0,8,8" Padding="10,6" CornerRadius="4" BorderThickness="1" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-                                            <Border MinWidth="24" Padding="6,1" CornerRadius="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
-                                                <TextBlock Text="{Binding Count}" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" FontSize="12" HorizontalAlignment="Center" />
-                                            </Border>
+                                            <TextBlock Text="{Binding Count}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" VerticalAlignment="Bottom" />
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -107,12 +105,12 @@
                         <TextBlock x:Name="TagsEmptyText" Text="暂无标签" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Visibility="Collapsed" />
                     </StackPanel>
 
-                    <StackPanel Spacing="8">
+                    <StackPanel Spacing="10">
                         <TextBlock Text="简介" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <TextBlock x:Name="SummaryText" TextWrapping="Wrap" />
                     </StackPanel>
 
-                    <StackPanel Spacing="8">
+                    <StackPanel Spacing="10">
                         <TextBlock Text="吐槽" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <ListView x:Name="CommentList" SelectionMode="None">
                             <ListView.ItemTemplate>

@@ -113,7 +113,7 @@ public sealed class BangumiApiClient
         }
 
         using var request = CreateRequest(HttpMethod.Patch, $"/v0/users/-/collections/{subjectId}/episodes");
-        request.Content = JsonContent.Create(new { episode_id = episodeIds, type = status }, options: _jsonOptions);
+        request.Content = CreateJsonContent(new { episode_id = episodeIds, type = status });
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
