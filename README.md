@@ -37,6 +37,8 @@ Bangumi.Win/
 
 时间胶囊当前未出现在 Bangumi v0 OpenAPI 中，客户端使用 `https://bgm.tv/user/{username}/timeline` 的只读 HTML 作为数据源，并把 HTML 解析封装在 `BangumiApiClient` 内。后续如果官方提供 v0 时间线端点，只需要替换服务层实现。
 
+MSIX 清单保留 WinUI 3 桌面应用所需的 `runFullTrust`，并移除了模板里与本客户端无关的系统 AI 权限。商店上架前仍需要替换正式 Publisher、包名、图标和隐私声明。
+
 ## 开发验证
 
 ```powershell

@@ -2,8 +2,7 @@
 <Page
     x:Class="Bangumi.Win.Views.SubjectDetailPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:models="using:Bangumi.Win.Models">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid Padding="28" RowSpacing="16">
         <Grid.RowDefinitions>
