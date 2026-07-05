@@ -13,8 +13,6 @@
 
         <CommandBar DefaultLabelPosition="Right" Background="Transparent">
             <AppBarButton Icon="Back" Label="返回" Click="Back_Click" />
-            <AppBarButton Icon="Add" Label="加入收藏" Click="AddCollection_Click" />
-            <AppBarButton x:Name="EpisodeProgressButton" Icon="List" Label="单集进度" Click="EpisodeProgress_Click" Visibility="Collapsed" />
         </CommandBar>
 
         <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
@@ -33,24 +31,39 @@
                     <TextBlock x:Name="SubtitleText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     <TextBlock x:Name="ScoreText" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                     <TextBlock x:Name="ProgressHintText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <Border Padding="12" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
-                        <StackPanel Spacing="4">
-                            <TextBlock Text="收藏状态" FontWeight="SemiBold" />
-                            <TextBlock x:Name="CollectionStatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </Border>
-                    <ListView x:Name="EpisodeStatusList" MaxHeight="260" SelectionMode="None" Visibility="Collapsed">
+                    <Button x:Name="CollectionStatusButton" HorizontalAlignment="Stretch" Click="CollectionStatus_Click">
+                        <Grid Padding="12" ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="收藏状态" FontWeight="SemiBold" />
+                                <TextBlock x:Name="CollectionStatusText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <FontIcon Grid.Column="1" Glyph="&#xE70F;" FontSize="14" />
+                        </Grid>
+                    </Button>
+                    <ListView x:Name="EpisodeStatusList" MaxHeight="360" SelectionMode="None" Visibility="Collapsed">
                         <ListView.ItemTemplate>
                             <DataTemplate>
                                 <Grid Padding="4,8" ColumnSpacing="12">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="84" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="72" />
+                                        <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="{Binding Episode.NumberText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                    <TextBlock Grid.Column="1" Text="{Binding Episode.DisplayName}" TextWrapping="Wrap" />
-                                    <TextBlock Grid.Column="2" Text="{Binding StatusLabel}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <StackPanel Grid.Column="1" Spacing="2">
+                                        <TextBlock Text="{Binding Episode.DisplayName}" TextWrapping="Wrap" />
+                                        <TextBlock Text="{Binding StatusLabel}" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                                        <Button Content="想看" Click="EpisodeWish_Click" Tag="{Binding}" />
+                                        <Button Content="看过" Click="EpisodeDone_Click" Tag="{Binding}" />
+                                        <Button Content="抛弃" Click="EpisodeDropped_Click" Tag="{Binding}" />
+                                        <Button Content="清除" Click="EpisodeNone_Click" Tag="{Binding}" />
+                                    </StackPanel>
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>

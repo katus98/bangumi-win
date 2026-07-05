@@ -30,7 +30,13 @@
 
         <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
 
-        <ListView x:Name="TimelineList" Grid.Row="2" SelectionMode="None">
+        <ListView
+            x:Name="TimelineList"
+            Grid.Row="2"
+            IsItemClickEnabled="True"
+            ItemClick="TimelineList_ItemClick"
+            Loaded="TimelineList_Loaded"
+            SelectionMode="None">
             <ListView.ItemTemplate>
                 <DataTemplate>
                     <Grid Padding="4,10" ColumnSpacing="14">

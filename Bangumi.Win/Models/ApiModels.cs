@@ -92,10 +92,11 @@ public sealed record SubjectCollection(
     }
 }
 
-public sealed record TimelineEntry(string Title, string Detail, string UserName, DateTimeOffset? CreatedAt, string ImageUrl)
+public sealed record TimelineEntry(string Title, string Detail, string UserName, DateTimeOffset? CreatedAt, string ImageUrl, int? SubjectId)
 {
     public string TimeText => CreatedAt?.LocalDateTime.ToString("yyyy-MM-dd HH:mm") ?? "未知时间";
     public bool HasImage => !string.IsNullOrWhiteSpace(ImageUrl);
+    public bool HasSubject => SubjectId is not null;
 }
 
 public sealed record SearchResultItem(int Id, string DisplayName, string Subtitle, string Summary, string ImageUrl, int? SubjectType, bool IsPerson)

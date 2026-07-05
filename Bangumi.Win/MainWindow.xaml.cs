@@ -22,12 +22,6 @@ public sealed partial class MainWindow : Window
 
     private void RootNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.IsSettingsSelected)
-        {
-            Navigate("settings");
-            return;
-        }
-
         if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
             Navigate(tag);

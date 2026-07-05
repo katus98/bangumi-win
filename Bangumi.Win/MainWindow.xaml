@@ -15,7 +15,7 @@
     <NavigationView
         x:Name="RootNavigation"
         IsBackButtonVisible="Collapsed"
-        IsSettingsVisible="True"
+        IsSettingsVisible="False"
         PaneDisplayMode="Auto"
         SelectionChanged="RootNavigation_SelectionChanged">
         <NavigationView.MenuItems>
@@ -23,6 +23,9 @@
             <NavigationViewItem Content="收藏" Icon="Library" Tag="collections" />
             <NavigationViewItem Content="搜索" Icon="Find" Tag="search" />
         </NavigationView.MenuItems>
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem Content="设置" Icon="Setting" Tag="settings" />
+        </NavigationView.FooterMenuItems>
 
         <Grid>
             <Grid.RowDefinitions>

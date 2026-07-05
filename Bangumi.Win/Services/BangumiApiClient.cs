@@ -40,9 +40,12 @@ public sealed class BangumiApiClient
         return await SendAsync<BangumiUser>(request, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<TimelineEntry>> GetTimelineAsync(string username, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<TimelineEntry>> GetTimelineAsync(string username, int page = 1, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"https://bgm.tv/user/{Uri.EscapeDataString(username)}/timeline");
+        var path = page <= 1
+            ? $"https://bgm.tv/user/{Uri.EscapeDataString(username)}/timeline"
+            : $"https://bgm.tv/user/{Uri.EscapeDataString(username)}/timeline?page={page}";
+        using var request = CreateRequest(HttpMethod.Get, path);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
 
@@ -256,10 +259,11 @@ public sealed class BangumiApiClient
             var detailMatch = Regex.Match(itemHtml, @"<p\s+class=""info\s+tip""[^>]*>(?<detail>.*?)</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
             var detail = detailMatch.Success ? StripHtml(detailMatch.Groups["detail"].Value) : string.Empty;
             var imageUrl = ExtractTimelineImageUrl(itemHtml);
+            var subjectId = ExtractTimelineSubjectId(itemHtml);
 
             if (!string.IsNullOrWhiteSpace(title))
             {
-                entries.Add(new TimelineEntry(title, detail, username, currentDate, imageUrl));
+                entries.Add(new TimelineEntry(title, detail, username, currentDate, imageUrl, subjectId));
             }
         }
 
@@ -295,6 +299,18 @@ public sealed class BangumiApiClient
         return src.StartsWith("//", StringComparison.Ordinal)
             ? $"https:{src}"
             : src.StartsWith("/", StringComparison.Ordinal) ? $"https://bgm.tv{src}" : src;
+    }
+
+    private static int? ExtractTimelineSubjectId(string html)
+    {
+        var dataMatch = Regex.Match(html, @"data-subject-id=""(?<id>\d+)""", RegexOptions.IgnoreCase);
+        if (dataMatch.Success && int.TryParse(dataMatch.Groups["id"].Value, out var dataId))
+        {
+            return dataId;
+        }
+
+        var hrefMatch = Regex.Match(html, @"/subject/(?<id>\d+)", RegexOptions.IgnoreCase);
+        return hrefMatch.Success && int.TryParse(hrefMatch.Groups["id"].Value, out var hrefId) ? hrefId : null;
     }
 
     private static string? GetString(JsonElement element, string propertyName)

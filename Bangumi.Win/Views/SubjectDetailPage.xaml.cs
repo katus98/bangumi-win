@@ -37,7 +37,7 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
-    private async void AddCollection_Click(object sender, RoutedEventArgs e)
+    private async void CollectionStatus_Click(object sender, RoutedEventArgs e)
     {
         if (_subject is null)
         {
@@ -46,19 +46,42 @@ public sealed partial class SubjectDetailPage : Page
 
         if (!AppServices.TokenStore.HasToken)
         {
-            ShowStatus("请先登录后再加入收藏。", InfoBarSeverity.Warning);
+            ShowStatus("请先登录后再编辑收藏状态。", InfoBarSeverity.Warning);
+            return;
+        }
+
+        var statusBox = new ComboBox
+        {
+            Header = "收藏状态",
+            ItemsSource = BangumiConstants.GetEditableCollectionStatuses(_subject.Type),
+            DisplayMemberPath = "Name",
+            SelectedIndex = Math.Max(0, IndexOfStatus(_collection?.Type ?? 3, _subject.Type))
+        };
+
+        var dialog = new ContentDialog
+        {
+            Title = _subject.DisplayName,
+            Content = statusBox,
+            PrimaryButtonText = _collection is null ? "加入收藏" : "保存",
+            CloseButtonText = "取消",
+            XamlRoot = XamlRoot
+        };
+
+        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+        {
             return;
         }
 
         try
         {
-            await AppServices.ApiClient.AddCollectionAsync(_subject.Id);
-            ShowStatus("已加入在看/在读/在玩。", InfoBarSeverity.Success);
+            var status = statusBox.SelectedItem is OptionItem<int> selected ? selected.Value : 3;
+            await AppServices.ApiClient.UpdateCollectionAsync(_subject.Id, status, null, null);
             await LoadCollectionAsync();
+            ShowStatus("收藏状态已更新。", InfoBarSeverity.Success);
         }
         catch (Exception ex)
         {
-            ShowStatus($"加入收藏失败：{ex.Message}", InfoBarSeverity.Error);
+            ShowStatus($"收藏状态更新失败：{ex.Message}", InfoBarSeverity.Error);
         }
     }
 
@@ -73,10 +96,7 @@ public sealed partial class SubjectDetailPage : Page
             ScoreText.Text = _subject.Score is double score ? $"评分 {score:0.0}" : "暂无评分";
             ProgressHintText.Text = BuildProgressHint(_subject);
             SummaryText.Text = _subject.Summary ?? "暂无简介";
-            if (!string.IsNullOrWhiteSpace(_subject.ImageUrl))
-            {
-                CoverImage.Source = new BitmapImage(new Uri(_subject.ImageUrl));
-            }
+            CoverImage.Source = string.IsNullOrWhiteSpace(_subject.ImageUrl) ? null : new BitmapImage(new Uri(_subject.ImageUrl));
 
             await LoadCollectionAsync();
             StatusBar.IsOpen = false;
@@ -87,19 +107,12 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
-    private async void EpisodeProgress_Click(object sender, RoutedEventArgs e)
-    {
-        if (_subject is not null)
-        {
-            Frame.Navigate(typeof(EpisodeProgressPage), _subject);
-        }
-    }
-
     private async System.Threading.Tasks.Task LoadCollectionAsync()
     {
-        CollectionStatusText.Text = "未收藏";
+        _collection = null;
+        CollectionStatusText.Text = "未收藏，点击此处加入收藏";
         EpisodeStatusList.Visibility = Visibility.Collapsed;
-        EpisodeProgressButton.Visibility = Visibility.Collapsed;
+        EpisodeStatusList.ItemsSource = null;
 
         if (_subject is null || !AppServices.TokenStore.HasToken)
         {
@@ -114,21 +127,62 @@ public sealed partial class SubjectDetailPage : Page
 
             if (_subject.Type == 2)
             {
-                EpisodeProgressButton.Visibility = Visibility.Visible;
                 var episodes = await AppServices.ApiClient.GetEpisodeCollectionsAsync(_subject.Id);
-                var visibleEpisodes = episodes.Data
-                    .Where(item => item.Type != 0)
-                    .OrderBy(item => item.Episode.Sort)
-                    .Take(20)
-                    .ToList();
-                EpisodeStatusList.ItemsSource = visibleEpisodes;
-                EpisodeStatusList.Visibility = visibleEpisodes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+                EpisodeStatusList.ItemsSource = episodes.Data.OrderBy(item => item.Episode.Sort).ToList();
+                EpisodeStatusList.Visibility = Visibility.Visible;
             }
         }
         catch
         {
-            CollectionStatusText.Text = "未收藏";
+            CollectionStatusText.Text = "未收藏，点击此处加入收藏";
         }
+    }
+
+    private async void EpisodeWish_Click(object sender, RoutedEventArgs e) => await UpdateEpisodeAsync(sender, 1);
+
+    private async void EpisodeDone_Click(object sender, RoutedEventArgs e) => await UpdateEpisodeAsync(sender, 2);
+
+    private async void EpisodeDropped_Click(object sender, RoutedEventArgs e) => await UpdateEpisodeAsync(sender, 3);
+
+    private async void EpisodeNone_Click(object sender, RoutedEventArgs e) => await UpdateEpisodeAsync(sender, 0);
+
+    private async System.Threading.Tasks.Task UpdateEpisodeAsync(object sender, int status)
+    {
+        if (_subject is null || sender is not Button { Tag: UserEpisodeCollection episode })
+        {
+            return;
+        }
+
+        if (!AppServices.TokenStore.HasToken)
+        {
+            ShowStatus("请先登录后再修改单集状态。", InfoBarSeverity.Warning);
+            return;
+        }
+
+        try
+        {
+            await AppServices.ApiClient.UpdateEpisodeCollectionsAsync(_subject.Id, [episode.Episode.Id], status);
+            await LoadCollectionAsync();
+            ShowStatus("单集状态已更新。", InfoBarSeverity.Success);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus($"单集状态更新失败：{ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
+    private static int IndexOfStatus(int status, int subjectType)
+    {
+        var statuses = BangumiConstants.GetEditableCollectionStatuses(subjectType);
+        for (var i = 0; i < statuses.Count; i++)
+        {
+            if (statuses[i].Value == status)
+            {
+                return i;
+            }
+        }
+
+        return 0;
     }
 
     private static string BuildProgressHint(SubjectSummary subject)
