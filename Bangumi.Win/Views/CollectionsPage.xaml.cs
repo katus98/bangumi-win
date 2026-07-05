@@ -4,56 +4,55 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace Bangumi.Win.Views;
 
 public sealed partial class CollectionsPage : Page
 {
     private const int PageSize = 30;
+    private readonly ObservableCollection<SubjectCollection> _collections = [];
     private int _offset;
     private int _total;
+    private bool _isLoading;
     private string? _username;
 
     public CollectionsPage()
     {
         InitializeComponent();
-        SubjectTypeBox.ItemsSource = BangumiConstants.SubjectTypes;
-        SubjectTypeBox.SelectedIndex = 0;
-        CollectionStatusBox.ItemsSource = BangumiConstants.CollectionStatuses;
-        CollectionStatusBox.SelectedIndex = 0;
+        CollectionList.ItemsSource = _collections;
+        CreateTabs(SubjectTypeTabs, BangumiConstants.SubjectTypes);
+        CreateTabs(CollectionStatusTabs, BangumiConstants.CollectionStatuses);
         Loaded += CollectionsPage_Loaded;
     }
 
     private async void CollectionsPage_Loaded(object sender, RoutedEventArgs e)
     {
-        await LoadCollectionsAsync(resetOffset: true);
+        await LoadCollectionsAsync(reset: true);
     }
 
-    private async void Filters_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void SubjectTypeTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (IsLoaded)
         {
-            await LoadCollectionsAsync(resetOffset: true);
+            await LoadCollectionsAsync(reset: true);
         }
     }
 
-    private async void Refresh_Click(object sender, RoutedEventArgs e)
+    private async void CollectionStatusTabs_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        await LoadCollectionsAsync(resetOffset: true);
-    }
-
-    private async void PreviousPage_Click(object sender, RoutedEventArgs e)
-    {
-        _offset = Math.Max(0, _offset - PageSize);
-        await LoadCollectionsAsync(resetOffset: false);
-    }
-
-    private async void NextPage_Click(object sender, RoutedEventArgs e)
-    {
-        if (_offset + PageSize < _total)
+        if (IsLoaded)
         {
-            _offset += PageSize;
-            await LoadCollectionsAsync(resetOffset: false);
+            await LoadCollectionsAsync(reset: true);
+        }
+    }
+
+    private async void CollectionList_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    {
+        if (!_isLoading && _collections.Count < _total && args.ItemIndex >= _collections.Count - 6)
+        {
+            await LoadCollectionsAsync(reset: false);
         }
     }
 
@@ -108,14 +107,6 @@ public sealed partial class CollectionsPage : Page
         panel.Children.Add(statusBox);
         panel.Children.Add(epBox);
         panel.Children.Add(volBox);
-        if (collection.Subject.Type != 1)
-        {
-            panel.Children.Add(new TextBlock
-            {
-                Text = "当前 API 仅允许直接修改书籍条目的话数/卷数进度；动画请使用单集进度页面。",
-                TextWrapping = TextWrapping.Wrap
-            });
-        }
 
         var dialog = new ContentDialog
         {
@@ -136,7 +127,7 @@ public sealed partial class CollectionsPage : Page
                     status,
                     epBox.IsEnabled ? Convert.ToInt32(epBox.Value) : null,
                     volBox.IsEnabled ? Convert.ToInt32(volBox.Value) : null);
-                await LoadCollectionsAsync(resetOffset: false);
+                await LoadCollectionsAsync(reset: true);
                 ShowStatus("收藏已更新。", InfoBarSeverity.Success);
             }
             catch (Exception ex)
@@ -146,8 +137,13 @@ public sealed partial class CollectionsPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task LoadCollectionsAsync(bool resetOffset)
+    private async System.Threading.Tasks.Task LoadCollectionsAsync(bool reset)
     {
+        if (_isLoading)
+        {
+            return;
+        }
+
         if (!AppServices.TokenStore.HasToken)
         {
             ShowStatus("请先登录后再管理收藏。", InfoBarSeverity.Warning);
@@ -156,29 +152,54 @@ public sealed partial class CollectionsPage : Page
 
         try
         {
-            if (resetOffset)
+            _isLoading = true;
+            if (reset)
             {
                 _offset = 0;
+                _total = 0;
+                _collections.Clear();
             }
 
             ShowStatus("正在加载收藏...", InfoBarSeverity.Informational);
-            if (_username is null)
+            _username ??= (await AppServices.ApiClient.GetMeAsync()).Username;
+            var result = await AppServices.ApiClient.GetCollectionsAsync(_username, GetSelectedValue(SubjectTypeTabs), GetSelectedValue(CollectionStatusTabs), _offset);
+            _total = result.Total;
+            foreach (var item in result.Data)
             {
-                _username = (await AppServices.ApiClient.GetMeAsync()).Username;
+                _collections.Add(item);
             }
 
-            var subjectType = (SubjectTypeBox.SelectedItem as OptionItem<int?>)?.Value;
-            var status = (CollectionStatusBox.SelectedItem as OptionItem<int?>)?.Value;
-            var result = await AppServices.ApiClient.GetCollectionsAsync(_username, subjectType, status, _offset);
-            _total = result.Total;
-            CollectionList.ItemsSource = result.Data;
-            PageText.Text = $"{_offset + 1}-{Math.Min(_offset + result.Data.Count, _total)} / {_total}";
+            _offset += result.Data.Count;
             StatusBar.IsOpen = false;
         }
         catch (Exception ex)
         {
             ShowStatus($"加载失败：{ex.Message}", InfoBarSeverity.Error);
         }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static void CreateTabs(TabView tabView, IReadOnlyList<OptionItem<int?>> items)
+    {
+        foreach (var item in items)
+        {
+            tabView.TabItems.Add(new TabViewItem
+            {
+                Header = item.Name,
+                Tag = item,
+                IsClosable = false
+            });
+        }
+
+        tabView.SelectedIndex = 0;
+    }
+
+    private static int? GetSelectedValue(TabView tabView)
+    {
+        return tabView.SelectedItem is TabViewItem { Tag: OptionItem<int?> item } ? item.Value : null;
     }
 
     private static int IndexOfStatus(int status)

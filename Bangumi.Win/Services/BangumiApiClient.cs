@@ -127,16 +127,16 @@ public sealed class BangumiApiClient
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<SearchResultItem>> SearchAsync(string keyword, int? type, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<SearchResultItem>> SearchAsync(string keyword, int? type, int offset = 0, CancellationToken cancellationToken = default)
     {
         if (type == -1)
         {
-            return await SearchPersonsAsync(keyword, cancellationToken);
+            return await SearchPersonsAsync(keyword, offset, cancellationToken);
         }
 
         var filter = type is int subjectType ? new { type = new[] { subjectType } } : null;
         var body = new { keyword, sort = "match", filter };
-        using var request = CreateRequest(HttpMethod.Post, "/v0/search/subjects?limit=30&offset=0");
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/search/subjects?limit=30&offset={offset}");
         request.Content = JsonContent.Create(body, options: _jsonOptions);
 
         var result = await SendAsync<PagedResponse<SubjectSummary>>(request, cancellationToken);
@@ -150,10 +150,10 @@ public sealed class BangumiApiClient
             false)).ToList();
     }
 
-    private async Task<IReadOnlyList<SearchResultItem>> SearchPersonsAsync(string keyword, CancellationToken cancellationToken)
+    private async Task<IReadOnlyList<SearchResultItem>> SearchPersonsAsync(string keyword, int offset, CancellationToken cancellationToken)
     {
         var body = new { keyword };
-        using var request = CreateRequest(HttpMethod.Post, "/v0/search/persons?limit=30&offset=0");
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/search/persons?limit=30&offset={offset}");
         request.Content = JsonContent.Create(body, options: _jsonOptions);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);
@@ -233,10 +233,11 @@ public sealed class BangumiApiClient
             var title = StripHtml(info);
             var detailMatch = Regex.Match(itemHtml, @"<p\s+class=""info\s+tip""[^>]*>(?<detail>.*?)</p>", RegexOptions.Singleline | RegexOptions.IgnoreCase);
             var detail = detailMatch.Success ? StripHtml(detailMatch.Groups["detail"].Value) : string.Empty;
+            var imageUrl = ExtractTimelineImageUrl(itemHtml);
 
             if (!string.IsNullOrWhiteSpace(title))
             {
-                entries.Add(new TimelineEntry(title, detail, username, currentDate));
+                entries.Add(new TimelineEntry(title, detail, username, currentDate, imageUrl));
             }
         }
 
@@ -258,6 +259,20 @@ public sealed class BangumiApiClient
         var withoutTags = Regex.Replace(html, "<.*?>", " ", RegexOptions.Singleline);
         var decoded = WebUtility.HtmlDecode(withoutTags);
         return Regex.Replace(decoded, @"\s+", " ").Trim();
+    }
+
+    private static string ExtractTimelineImageUrl(string html)
+    {
+        var imageMatch = Regex.Match(html, @"<img[^>]+src=""(?<src>[^""]+)""", RegexOptions.IgnoreCase);
+        if (!imageMatch.Success)
+        {
+            return string.Empty;
+        }
+
+        var src = WebUtility.HtmlDecode(imageMatch.Groups["src"].Value);
+        return src.StartsWith("//", StringComparison.Ordinal)
+            ? $"https:{src}"
+            : src.StartsWith("/", StringComparison.Ordinal) ? $"https://bgm.tv{src}" : src;
     }
 
     private static string? GetString(JsonElement element, string propertyName)

@@ -79,7 +79,15 @@ public sealed record SubjectCollection(
             var parts = new List<string>();
             if (Subject.Eps is > 0)
             {
-                parts.Add($"章节 {EpStatus ?? 0}/{Subject.Eps}");
+                if (Subject.Type == 2)
+                {
+                    var verb = Type == 2 ? "看过" : Type == 3 ? "看到" : "进度";
+                    parts.Add($"{verb} {EpStatus ?? 0} 集");
+                }
+                else
+                {
+                    parts.Add($"话数 {EpStatus ?? 0}/{Subject.Eps}");
+                }
             }
 
             if (Subject.Volumes is > 0)
@@ -92,9 +100,10 @@ public sealed record SubjectCollection(
     }
 }
 
-public sealed record TimelineEntry(string Title, string Detail, string UserName, DateTimeOffset? CreatedAt)
+public sealed record TimelineEntry(string Title, string Detail, string UserName, DateTimeOffset? CreatedAt, string ImageUrl)
 {
     public string TimeText => CreatedAt?.LocalDateTime.ToString("yyyy-MM-dd HH:mm") ?? "未知时间";
+    public bool HasImage => !string.IsNullOrWhiteSpace(ImageUrl);
 }
 
 public sealed record SearchResultItem(int Id, string DisplayName, string Subtitle, string Summary, string ImageUrl, int? SubjectType, bool IsPerson)

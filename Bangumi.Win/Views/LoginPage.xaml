@@ -5,8 +5,9 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer>
-        <Grid Padding="32" RowSpacing="20" MaxWidth="720" HorizontalAlignment="Left">
+        <Grid Padding="32" RowSpacing="20" MaxWidth="760" HorizontalAlignment="Left">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -28,7 +29,22 @@
                 PlaceholderText="从 Bangumi 获取的 access token"
                 PasswordRevealMode="Peek" />
 
-            <CommandBar Grid.Row="2" DefaultLabelPosition="Right" Background="Transparent">
+            <Grid Grid.Row="2" ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="96" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="80" Height="80" CornerRadius="40" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
+                    <Image x:Name="AvatarImage" Stretch="UniformToFill" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock x:Name="LoginStateText" Text="未登录" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Name="NicknameText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="UserMetaText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
+            </Grid>
+
+            <CommandBar Grid.Row="3" DefaultLabelPosition="Right" Background="Transparent">
                 <AppBarButton Icon="Accept" Label="登录" Click="SignIn_Click" />
                 <AppBarButton Icon="Refresh" Label="验证当前登录" Click="Verify_Click" />
                 <AppBarButton Icon="Clear" Label="退出登录" Click="SignOut_Click" />
@@ -36,7 +52,7 @@
 
             <InfoBar
                 x:Name="StatusBar"
-                Grid.Row="3"
+                Grid.Row="4"
                 IsOpen="False" />
         </Grid>
     </ScrollViewer>

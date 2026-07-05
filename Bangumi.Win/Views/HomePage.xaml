@@ -36,10 +36,14 @@
                     <Grid Padding="4,10" ColumnSpacing="14">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="112" />
+                            <ColumnDefinition Width="76" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <TextBlock Text="{Binding TimeText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <StackPanel Grid.Column="1" Spacing="4">
+                        <Border Grid.Column="1" Width="64" Height="88" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4">
+                            <Image Source="{Binding ImageUrl}" Stretch="UniformToFill" />
+                        </Border>
+                        <StackPanel Grid.Column="2" Spacing="4">
                             <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
                             <TextBlock Text="{Binding Detail}" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" MaxLines="3" />
                             <TextBlock Text="{Binding UserName}" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
