@@ -41,7 +41,9 @@
         <ListView
             x:Name="ResultList"
             Grid.Row="4"
-            ContainerContentChanging="ResultList_ContainerContentChanging"
+            Loaded="ResultList_Loaded"
+            ItemClick="ResultList_ItemClick"
+            IsItemClickEnabled="True"
             SelectionMode="None">
             <ListView.ItemTemplate>
                 <DataTemplate>
@@ -60,7 +62,6 @@
                             <TextBlock Text="{Binding Summary}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" MaxLines="3" />
                         </StackPanel>
                         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                            <Button Content="详情" Click="Details_Click" Tag="{Binding}" />
                             <Button Content="加入收藏" Click="AddCollection_Click" Tag="{Binding}" />
                         </StackPanel>
                     </Grid>

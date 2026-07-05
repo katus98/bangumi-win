@@ -23,8 +23,8 @@ public sealed partial class CollectionsPage : Page
     {
         InitializeComponent();
         CollectionList.ItemsSource = _collections;
-        CreateTabs(SubjectTypeTabs, BangumiConstants.SubjectTypes);
-        CreateTabs(CollectionStatusTabs, BangumiConstants.CollectionStatuses);
+        CreateTabs(SubjectTypeTabs, BangumiConstants.CollectionSubjectTypes);
+        CreateTabs(CollectionStatusTabs, BangumiConstants.GetCollectionStatuses(GetSelectedValue(SubjectTypeTabs)));
         Loaded += CollectionsPage_Loaded;
     }
 
@@ -41,9 +41,9 @@ public sealed partial class CollectionsPage : Page
         }
     }
 
-    private void Details_Click(object sender, RoutedEventArgs e)
+    private void CollectionList_ItemClick(object sender, ItemClickEventArgs e)
     {
-        if (sender is Button { Tag: SubjectCollection collection })
+        if (e.ClickedItem is SubjectCollection collection)
         {
             Frame.Navigate(typeof(SubjectDetailPage), collection.Subject.Id);
         }
@@ -59,7 +59,7 @@ public sealed partial class CollectionsPage : Page
         var statusBox = new ComboBox
         {
             Header = "收藏状态",
-            ItemsSource = BangumiConstants.EditableCollectionStatuses,
+            ItemsSource = BangumiConstants.GetEditableCollectionStatuses(collection.Subject.Type),
             DisplayMemberPath = "Name",
             SelectedIndex = Math.Max(0, IndexOfStatus(collection.Type))
         };
@@ -225,6 +225,12 @@ public sealed partial class CollectionsPage : Page
 
         clicked.IsEnabled = false;
         UpdateTabStyles(parent);
+
+        if (parent == SubjectTypeTabs)
+        {
+            CollectionStatusTabs.Children.Clear();
+            CreateTabs(CollectionStatusTabs, BangumiConstants.GetCollectionStatuses(GetSelectedValue(SubjectTypeTabs)));
+        }
 
         if (IsLoaded)
         {

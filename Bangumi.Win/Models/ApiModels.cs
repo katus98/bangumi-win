@@ -62,15 +62,7 @@ public sealed record SubjectCollection(
     [property: JsonPropertyName("vol_status")] int? VolStatus,
     [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt)
 {
-    public string StatusLabel => Type switch
-    {
-        1 => "想看/想读/想玩",
-        2 => "看过/读过/玩过",
-        3 => "在看/在读/在玩",
-        4 => "搁置",
-        5 => "抛弃",
-        _ => "收藏"
-    };
+    public string StatusLabel => BangumiConstants.CollectionStatusLabel(Subject.Type, Type);
 
     public string ProgressLabel
     {

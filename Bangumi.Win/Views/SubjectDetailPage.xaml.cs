@@ -5,12 +5,14 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using System;
+using System.Linq;
 
 namespace Bangumi.Win.Views;
 
 public sealed partial class SubjectDetailPage : Page
 {
     private SubjectSummary? _subject;
+    private SubjectCollection? _collection;
 
     public SubjectDetailPage()
     {
@@ -52,6 +54,7 @@ public sealed partial class SubjectDetailPage : Page
         {
             await AppServices.ApiClient.AddCollectionAsync(_subject.Id);
             ShowStatus("已加入在看/在读/在玩。", InfoBarSeverity.Success);
+            await LoadCollectionAsync();
         }
         catch (Exception ex)
         {
@@ -75,11 +78,56 @@ public sealed partial class SubjectDetailPage : Page
                 CoverImage.Source = new BitmapImage(new Uri(_subject.ImageUrl));
             }
 
+            await LoadCollectionAsync();
             StatusBar.IsOpen = false;
         }
         catch (Exception ex)
         {
             ShowStatus($"加载失败：{ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
+    private async void EpisodeProgress_Click(object sender, RoutedEventArgs e)
+    {
+        if (_subject is not null)
+        {
+            Frame.Navigate(typeof(EpisodeProgressPage), _subject);
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadCollectionAsync()
+    {
+        CollectionStatusText.Text = "未收藏";
+        EpisodeStatusList.Visibility = Visibility.Collapsed;
+        EpisodeProgressButton.Visibility = Visibility.Collapsed;
+
+        if (_subject is null || !AppServices.TokenStore.HasToken)
+        {
+            return;
+        }
+
+        try
+        {
+            var me = await AppServices.ApiClient.GetMeAsync();
+            _collection = await AppServices.ApiClient.GetCollectionAsync(me.Username, _subject.Id);
+            CollectionStatusText.Text = $"{_collection.StatusLabel} · {_collection.ProgressLabel}";
+
+            if (_subject.Type == 2)
+            {
+                EpisodeProgressButton.Visibility = Visibility.Visible;
+                var episodes = await AppServices.ApiClient.GetEpisodeCollectionsAsync(_subject.Id);
+                var visibleEpisodes = episodes.Data
+                    .Where(item => item.Type != 0)
+                    .OrderBy(item => item.Episode.Sort)
+                    .Take(20)
+                    .ToList();
+                EpisodeStatusList.ItemsSource = visibleEpisodes;
+                EpisodeStatusList.Visibility = visibleEpisodes.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+            }
+        }
+        catch
+        {
+            CollectionStatusText.Text = "未收藏";
         }
     }
 

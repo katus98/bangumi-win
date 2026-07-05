@@ -67,6 +67,12 @@ public sealed class BangumiApiClient
         return await SendAsync<PagedResponse<SubjectCollection>>(request, cancellationToken);
     }
 
+    public async Task<SubjectCollection> GetCollectionAsync(string username, int subjectId, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/{Uri.EscapeDataString(username)}/collections/{subjectId}");
+        return await SendAsync<SubjectCollection>(request, cancellationToken);
+    }
+
     public async Task UpdateCollectionAsync(int subjectId, int status, int? epStatus, int? volStatus, CancellationToken cancellationToken = default)
     {
         var body = new Dictionary<string, object?>
@@ -145,7 +151,7 @@ public sealed class BangumiApiClient
 
         var filter = type is int subjectType ? new { type = new[] { subjectType } } : null;
         var body = new { keyword, sort = "match", filter };
-        using var request = CreateRequest(HttpMethod.Post, $"/v0/search/subjects?limit=30&offset={offset}");
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/search/subjects?limit=20&offset={offset}");
         request.Content = JsonContent.Create(body, options: _jsonOptions);
 
         var result = await SendAsync<PagedResponse<SubjectSummary>>(request, cancellationToken);
@@ -162,7 +168,7 @@ public sealed class BangumiApiClient
     private async Task<IReadOnlyList<SearchResultItem>> SearchPersonsAsync(string keyword, int offset, CancellationToken cancellationToken)
     {
         var body = new { keyword };
-        using var request = CreateRequest(HttpMethod.Post, $"/v0/search/persons?limit=30&offset={offset}");
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/search/persons?limit=20&offset={offset}");
         request.Content = JsonContent.Create(body, options: _jsonOptions);
 
         using var response = await _httpClient.SendAsync(request, cancellationToken);

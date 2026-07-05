@@ -12,11 +12,12 @@ namespace Bangumi.Win.Views;
 
 public sealed partial class SearchPage : Page
 {
-    private const int PageSize = 30;
+    private const int PageSize = 20;
     private readonly ObservableCollection<SearchResultItem> _results = [];
     private int _offset;
     private bool _hasMore;
     private bool _isLoading;
+    private ScrollViewer? _resultScrollViewer;
 
     public SearchPage()
     {
@@ -75,17 +76,31 @@ public sealed partial class SearchPage : Page
         }
     }
 
-    private async void ResultList_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+    private void ResultList_Loaded(object sender, RoutedEventArgs e)
     {
-        if (_hasMore && !_isLoading && args.ItemIndex >= _results.Count - 6)
+        _resultScrollViewer = FindDescendant<ScrollViewer>(ResultList);
+        if (_resultScrollViewer is not null)
+        {
+            _resultScrollViewer.ViewChanged += ResultScrollViewer_ViewChanged;
+        }
+    }
+
+    private async void ResultScrollViewer_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (_resultScrollViewer is null || !_hasMore || _isLoading)
+        {
+            return;
+        }
+
+        if (_resultScrollViewer.VerticalOffset >= _resultScrollViewer.ScrollableHeight - 240)
         {
             await SearchAsync(reset: false);
         }
     }
 
-    private void Details_Click(object sender, RoutedEventArgs e)
+    private void ResultList_ItemClick(object sender, ItemClickEventArgs e)
     {
-        if (sender is Button { Tag: SearchResultItem item })
+        if (e.ClickedItem is SearchResultItem item)
         {
             Frame.Navigate(item.IsPerson ? typeof(PersonDetailPage) : typeof(SubjectDetailPage), item.Id);
         }
@@ -164,7 +179,7 @@ public sealed partial class SearchPage : Page
         var statusBox = new ComboBox
         {
             Header = "收藏状态",
-            ItemsSource = BangumiConstants.EditableCollectionStatuses,
+            ItemsSource = BangumiConstants.GetEditableCollectionStatuses(item.SubjectType),
             DisplayMemberPath = "Name",
             SelectedIndex = 2
         };
@@ -227,5 +242,25 @@ public sealed partial class SearchPage : Page
                 : (Brush)Application.Current.Resources["TextFillColorPrimaryBrush"];
             button.FontWeight = button.IsEnabled ? Microsoft.UI.Text.FontWeights.Normal : Microsoft.UI.Text.FontWeights.SemiBold;
         }
+    }
+
+    private static T? FindDescendant<T>(DependencyObject root) where T : DependencyObject
+    {
+        for (var i = 0; i < VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = VisualTreeHelper.GetChild(root, i);
+            if (child is T match)
+            {
+                return match;
+            }
+
+            var descendant = FindDescendant<T>(child);
+            if (descendant is not null)
+            {
+                return descendant;
+            }
+        }
+
+        return null;
     }
 }
