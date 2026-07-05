@@ -1,0 +1,103 @@
+using System;
+using System.Collections.Generic;
+using System.Text.Json.Serialization;
+
+namespace Bangumi.Win.Models;
+
+public sealed record BangumiUser(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("username")] string Username,
+    [property: JsonPropertyName("nickname")] string Nickname,
+    [property: JsonPropertyName("avatar")] BangumiAvatar? Avatar);
+
+public sealed record BangumiAvatar(
+    [property: JsonPropertyName("large")] string? Large,
+    [property: JsonPropertyName("medium")] string? Medium,
+    [property: JsonPropertyName("small")] string? Small);
+
+public sealed record PagedResponse<T>(
+    [property: JsonPropertyName("data")] List<T> Data,
+    [property: JsonPropertyName("total")] int Total,
+    [property: JsonPropertyName("limit")] int Limit,
+    [property: JsonPropertyName("offset")] int Offset);
+
+public sealed record SubjectSummary(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("type")] int Type,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("name_cn")] string? NameCn,
+    [property: JsonPropertyName("summary")] string? Summary,
+    [property: JsonPropertyName("images")] SubjectImages? Images,
+    [property: JsonPropertyName("eps")] int? Eps,
+    [property: JsonPropertyName("volumes")] int? Volumes,
+    [property: JsonPropertyName("score")] double? Score)
+{
+    public string DisplayName => string.IsNullOrWhiteSpace(NameCn) ? Name : NameCn!;
+    public string Subtitle => string.IsNullOrWhiteSpace(NameCn) || NameCn == Name ? TypeLabel : $"{Name} · {TypeLabel}";
+    public string ImageUrl => Images?.Medium ?? Images?.Common ?? Images?.Small ?? string.Empty;
+    public string TypeLabel => Type switch
+    {
+        1 => "书籍",
+        2 => "动画",
+        3 => "音乐",
+        4 => "游戏",
+        6 => "三次元",
+        _ => "条目"
+    };
+}
+
+public sealed record SubjectImages(
+    [property: JsonPropertyName("large")] string? Large,
+    [property: JsonPropertyName("common")] string? Common,
+    [property: JsonPropertyName("medium")] string? Medium,
+    [property: JsonPropertyName("small")] string? Small,
+    [property: JsonPropertyName("grid")] string? Grid);
+
+public sealed record SubjectCollection(
+    [property: JsonPropertyName("subject")] SubjectSummary Subject,
+    [property: JsonPropertyName("type")] int Type,
+    [property: JsonPropertyName("rate")] int? Rate,
+    [property: JsonPropertyName("comment")] string? Comment,
+    [property: JsonPropertyName("ep_status")] int? EpStatus,
+    [property: JsonPropertyName("vol_status")] int? VolStatus,
+    [property: JsonPropertyName("updated_at")] DateTimeOffset? UpdatedAt)
+{
+    public string StatusLabel => Type switch
+    {
+        1 => "想看/想读/想玩",
+        2 => "看过/读过/玩过",
+        3 => "在看/在读/在玩",
+        4 => "搁置",
+        5 => "抛弃",
+        _ => "收藏"
+    };
+
+    public string ProgressLabel
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (Subject.Eps is > 0)
+            {
+                parts.Add($"章节 {EpStatus ?? 0}/{Subject.Eps}");
+            }
+
+            if (Subject.Volumes is > 0)
+            {
+                parts.Add($"卷 {VolStatus ?? 0}/{Subject.Volumes}");
+            }
+
+            return parts.Count == 0 ? "暂无进度信息" : string.Join(" · ", parts);
+        }
+    }
+}
+
+public sealed record TimelineEntry(string Title, string Detail, string UserName, DateTimeOffset? CreatedAt)
+{
+    public string TimeText => CreatedAt?.LocalDateTime.ToString("yyyy-MM-dd HH:mm") ?? "未知时间";
+}
+
+public sealed record SearchResultItem(int Id, string DisplayName, string Subtitle, string Summary, string ImageUrl, int? SubjectType, bool IsPerson)
+{
+    public string KindLabel => IsPerson ? "人物" : "条目";
+}

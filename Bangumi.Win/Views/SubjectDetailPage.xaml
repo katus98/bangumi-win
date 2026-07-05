@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Bangumi.Win.Views.SubjectDetailPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:models="using:Bangumi.Win.Models">
+
+    <Grid Padding="28" RowSpacing="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <CommandBar DefaultLabelPosition="Right" Background="Transparent">
+            <AppBarButton Icon="Back" Label="返回" Click="Back_Click" />
+            <AppBarButton Icon="Add" Label="加入收藏" Click="AddCollection_Click" />
+        </CommandBar>
+
+        <InfoBar x:Name="StatusBar" Grid.Row="1" IsOpen="False" />
+
+        <ScrollViewer Grid.Row="2">
+            <Grid ColumnSpacing="24" RowSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Top">
+                    <Image x:Name="CoverImage" Stretch="UniformToFill" />
+                </Border>
+                <StackPanel Grid.Column="1" Spacing="10">
+                    <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="SubtitleText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <TextBlock x:Name="ScoreText" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    <TextBlock x:Name="ProgressHintText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock x:Name="SummaryText" TextWrapping="Wrap" />
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Page>

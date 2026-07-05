@@ -1,31 +1,49 @@
+using Bangumi.Win.Services;
+using Bangumi.Win.Views;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Navigation;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace Bangumi.Win;
 
-namespace Bangumi.Win
+public sealed partial class MainWindow : Window
 {
-    /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
-    /// </summary>
-    public sealed partial class MainWindow : Window
+    public MainWindow()
     {
-        public MainWindow()
+        InitializeComponent();
+        AppServices.AuthStateChanged += OnAuthStateChanged;
+        UpdateAccountItem();
+        Navigate(AppServices.TokenStore.HasToken ? "home" : "account");
+    }
+
+    private void RootNavigation_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.SelectedItem is NavigationViewItem item && item.Tag is string tag)
         {
-            InitializeComponent();
+            Navigate(tag);
         }
+    }
+
+    private void Navigate(string tag)
+    {
+        var pageType = tag switch
+        {
+            "home" => typeof(HomePage),
+            "collections" => typeof(CollectionsPage),
+            "search" => typeof(SearchPage),
+            "account" => typeof(LoginPage),
+            _ => typeof(HomePage)
+        };
+
+        if (ContentFrame.CurrentSourcePageType != pageType)
+        {
+            ContentFrame.Navigate(pageType);
+        }
+    }
+
+    private void OnAuthStateChanged(object? sender, System.EventArgs e) => UpdateAccountItem();
+
+    private void UpdateAccountItem()
+    {
+        AccountNavigationItem.Content = AppServices.TokenStore.HasToken ? "账户" : "登录";
     }
 }

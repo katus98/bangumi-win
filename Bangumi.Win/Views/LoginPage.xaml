@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Bangumi.Win.Views.LoginPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer>
+        <Grid Padding="32" RowSpacing="20" MaxWidth="720" HorizontalAlignment="Left">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="Bangumi 登录" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock
+                    Text="粘贴 Bangumi access token 后会调用 /v0/me 验证，并在本机持久化登录状态。"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    TextWrapping="Wrap" />
+            </StackPanel>
+
+            <PasswordBox
+                x:Name="TokenBox"
+                Grid.Row="1"
+                Header="Access token"
+                PlaceholderText="从 Bangumi 获取的 access token"
+                PasswordRevealMode="Peek" />
+
+            <CommandBar Grid.Row="2" DefaultLabelPosition="Right" Background="Transparent">
+                <AppBarButton Icon="Accept" Label="登录" Click="SignIn_Click" />
+                <AppBarButton Icon="Refresh" Label="验证当前登录" Click="Verify_Click" />
+                <AppBarButton Icon="Clear" Label="退出登录" Click="SignOut_Click" />
+            </CommandBar>
+
+            <InfoBar
+                x:Name="StatusBar"
+                Grid.Row="3"
+                IsOpen="False" />
+        </Grid>
+    </ScrollViewer>
+</Page>
