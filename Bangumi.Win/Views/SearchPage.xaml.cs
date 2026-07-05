@@ -102,7 +102,7 @@ public sealed partial class SearchPage : Page
     {
         if (e.ClickedItem is SearchResultItem item)
         {
-            Frame.Navigate(item.IsPerson ? typeof(PersonDetailPage) : typeof(SubjectDetailPage), item.Id);
+            Frame.Navigate(item.IsPerson ? typeof(PersonDetailPage) : typeof(SubjectDetailPage), item.IsPerson ? item.Id : item);
         }
     }
 

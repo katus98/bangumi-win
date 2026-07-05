@@ -41,6 +41,16 @@ public sealed partial class SubjectDetailPage : Page
                 RenderSubject(collection.Subject);
                 await LoadSubjectAsync(collection.EffectiveSubjectId, collection.Subject);
                 break;
+            case SearchResultItem { IsPerson: false } searchResult:
+                var searchFallback = CreateSubjectFallback(searchResult);
+                RenderSubject(searchFallback);
+                await LoadSubjectAsync(searchResult.Id, searchFallback);
+                break;
+            case TimelineEntry { SubjectId: int subjectId } timelineEntry:
+                var timelineFallback = CreateSubjectFallback(timelineEntry, subjectId);
+                RenderSubject(timelineFallback);
+                await LoadSubjectAsync(subjectId, timelineFallback);
+                break;
             case SubjectSummary subject:
                 RenderSubject(subject);
                 await LoadSubjectAsync(subject.Id, subject);
@@ -142,6 +152,46 @@ public sealed partial class SubjectDetailPage : Page
             CoverImage.Source = null;
             BackdropImage.Source = null;
         }
+    }
+
+    private static SubjectSummary CreateSubjectFallback(SearchResultItem item)
+    {
+        var images = string.IsNullOrWhiteSpace(item.ImageUrl)
+            ? null
+            : new SubjectImages(item.ImageUrl, item.ImageUrl, item.ImageUrl, item.ImageUrl, item.ImageUrl);
+
+        return new SubjectSummary(
+            item.Id,
+            item.SubjectType ?? 0,
+            item.DisplayName,
+            null,
+            item.Summary,
+            images,
+            null,
+            null,
+            null,
+            null,
+            null);
+    }
+
+    private static SubjectSummary CreateSubjectFallback(TimelineEntry item, int subjectId)
+    {
+        var images = string.IsNullOrWhiteSpace(item.ImageUrl)
+            ? null
+            : new SubjectImages(item.ImageUrl, item.ImageUrl, item.ImageUrl, item.ImageUrl, item.ImageUrl);
+
+        return new SubjectSummary(
+            subjectId,
+            0,
+            item.Title,
+            null,
+            item.Detail,
+            images,
+            null,
+            null,
+            null,
+            null,
+            null);
     }
 
     private async System.Threading.Tasks.Task LoadCollectionAsync()

@@ -58,9 +58,9 @@ public sealed partial class HomePage : Page
 
     private void TimelineList_ItemClick(object sender, ItemClickEventArgs e)
     {
-        if (e.ClickedItem is TimelineEntry { SubjectId: int subjectId })
+        if (e.ClickedItem is TimelineEntry { SubjectId: not null } entry)
         {
-            Frame.Navigate(typeof(SubjectDetailPage), subjectId);
+            Frame.Navigate(typeof(SubjectDetailPage), entry);
         }
     }
 
