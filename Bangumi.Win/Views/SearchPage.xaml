@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Bangumi.Win.Views.SearchPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid Padding="28" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="搜索" Style="{ThemeResource TitleTextBlockStyle}" />
+
+        <Grid Grid.Row="1" ColumnSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="KeywordBox" Header="关键词" PlaceholderText="动画、书籍、音乐、游戏、三次元或人物" KeyDown="KeywordBox_KeyDown" />
+            <Button Grid.Column="1" VerticalAlignment="Bottom" Click="Search_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE721;" />
+                    <TextBlock Text="搜索" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <StackPanel
+            x:Name="SearchTypeTabs"
+            Grid.Row="2"
+            Orientation="Horizontal"
+            HorizontalAlignment="Center"
+            Spacing="8" />
+
+        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
+            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
+        </Popup>
+
+        <ListView
+            x:Name="ResultList"
+            Grid.Row="3"
+            Loaded="ResultList_Loaded"
+            ItemClick="ResultList_ItemClick"
+            IsItemClickEnabled="True"
+            SelectionMode="None">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="4,10" ColumnSpacing="14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="76" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="64" Height="88" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4">
+                            <Image Source="{Binding ImageUrl}" Stretch="UniformToFill" />
+                        </Border>
+                        <StackPanel Grid.Column="1" Spacing="4">
+                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Subtitle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock Text="{Binding Summary}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" MaxLines="3" />
+                        </StackPanel>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

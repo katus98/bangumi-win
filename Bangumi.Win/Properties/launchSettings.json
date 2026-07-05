@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Bangumi.Win (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Bangumi.Win (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
