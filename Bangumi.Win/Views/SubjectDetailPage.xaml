@@ -4,9 +4,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <Grid Padding="28">
-        <Image x:Name="BackdropImage" Stretch="UniformToFill" Opacity="0.18" IsHitTestVisible="False" />
-        <Rectangle Fill="{ThemeResource ApplicationPageBackgroundThemeBrush}" Opacity="0.88" IsHitTestVisible="False" />
+    <Grid Padding="28" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Image x:Name="BackdropImage" Stretch="UniformToFill" Opacity="0.18" IsHitTestVisible="False" Canvas.ZIndex="-1" />
+        <Rectangle Fill="{ThemeResource ApplicationPageBackgroundThemeBrush}" Opacity="0.88" IsHitTestVisible="False" Canvas.ZIndex="-1" />
 
         <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
             <InfoBar
@@ -16,7 +16,7 @@
                 IsOpen="False" />
         </Popup>
 
-        <ScrollViewer x:Name="DetailScrollViewer" ViewChanged="DetailScrollViewer_ViewChanged">
+        <ScrollViewer x:Name="DetailScrollViewer" Canvas.ZIndex="0" ViewChanged="DetailScrollViewer_ViewChanged">
             <Grid RowSpacing="18">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />

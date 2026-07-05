@@ -273,17 +273,11 @@ public sealed partial class CollectionsPage : Page
 
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusBar.Message = message;
-        StatusBar.Severity = severity;
-        StatusBar.IsOpen = true;
-        StatusPopup.HorizontalOffset = 28;
-        StatusPopup.VerticalOffset = 12;
-        StatusPopup.IsOpen = true;
+        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
     }
 
     private void HideStatus()
     {
-        StatusBar.IsOpen = false;
-        StatusPopup.IsOpen = false;
+        StatusPopupHelper.Hide(StatusPopup, StatusBar);
     }
 }

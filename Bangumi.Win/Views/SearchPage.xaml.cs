@@ -106,28 +106,6 @@ public sealed partial class SearchPage : Page
         }
     }
 
-    private async void AddCollection_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button { Tag: SearchResultItem item })
-        {
-            return;
-        }
-
-        if (!AppServices.TokenStore.HasToken)
-        {
-            ShowStatus("请先登录后再加入收藏。", InfoBarSeverity.Warning);
-            return;
-        }
-
-        if (item.IsPerson)
-        {
-            await AddPersonCollectionAsync(item);
-            return;
-        }
-
-        await AddSubjectCollectionAsync(item);
-    }
-
     private async System.Threading.Tasks.Task SearchAsync(bool reset)
     {
         if (_isLoading)
@@ -174,69 +152,14 @@ public sealed partial class SearchPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task AddSubjectCollectionAsync(SearchResultItem item)
-    {
-        var statusBox = new ComboBox
-        {
-            Header = "收藏状态",
-            ItemsSource = BangumiConstants.GetEditableCollectionStatuses(item.SubjectType),
-            DisplayMemberPath = "Name",
-            SelectedIndex = 2
-        };
-
-        var dialog = new ContentDialog
-        {
-            Title = $"加入收藏：{item.DisplayName}",
-            Content = statusBox,
-            PrimaryButtonText = "加入",
-            CloseButtonText = "取消",
-            XamlRoot = XamlRoot
-        };
-
-        if (await dialog.ShowAsync() != ContentDialogResult.Primary)
-        {
-            return;
-        }
-
-        try
-        {
-            var status = statusBox.SelectedItem is OptionItem<int> selected ? selected.Value : 3;
-            await AppServices.ApiClient.AddCollectionAsync(item.Id, status);
-            ShowStatus($"已将「{item.DisplayName}」加入收藏。", InfoBarSeverity.Success);
-        }
-        catch (Exception ex)
-        {
-            ShowStatus($"加入收藏失败：{ex.Message}", InfoBarSeverity.Error);
-        }
-    }
-
-    private async System.Threading.Tasks.Task AddPersonCollectionAsync(SearchResultItem item)
-    {
-        try
-        {
-            await AppServices.ApiClient.CollectPersonAsync(item.Id);
-            ShowStatus($"已收藏人物「{item.DisplayName}」。", InfoBarSeverity.Success);
-        }
-        catch (Exception ex)
-        {
-            ShowStatus($"收藏人物失败：{ex.Message}", InfoBarSeverity.Error);
-        }
-    }
-
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusBar.Message = message;
-        StatusBar.Severity = severity;
-        StatusBar.IsOpen = true;
-        StatusPopup.HorizontalOffset = 28;
-        StatusPopup.VerticalOffset = 12;
-        StatusPopup.IsOpen = true;
+        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
     }
 
     private void HideStatus()
     {
-        StatusBar.IsOpen = false;
-        StatusPopup.IsOpen = false;
+        StatusPopupHelper.Hide(StatusPopup, StatusBar);
     }
 
     private void UpdateTabStyles()

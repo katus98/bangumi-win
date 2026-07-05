@@ -115,11 +115,6 @@ public sealed partial class LoginPage : Page
 
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusBar.Message = message;
-        StatusBar.Severity = severity;
-        StatusBar.IsOpen = true;
-        StatusPopup.HorizontalOffset = 28;
-        StatusPopup.VerticalOffset = 12;
-        StatusPopup.IsOpen = true;
+        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
     }
 }
