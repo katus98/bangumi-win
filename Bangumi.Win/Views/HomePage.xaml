@@ -27,13 +27,15 @@
             </Button>
         </Grid>
 
-        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
-            <InfoBar
-                x:Name="StatusBar"
-                MinWidth="320"
-                MaxWidth="720"
-                IsOpen="False" />
-        </Popup>
+        <InfoBar
+            x:Name="StatusBar"
+            Grid.RowSpan="2"
+            MaxWidth="560"
+            Margin="0,0,0,4"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Canvas.ZIndex="10"
+            IsOpen="False" />
 
         <ListView
             x:Name="TimelineList"

@@ -11,24 +11,54 @@
         </Grid.RowDefinitions>
 
         <CommandBar DefaultLabelPosition="Right" Background="Transparent">
-            <AppBarButton Icon="Back" Label="返回" Click="Back_Click" />
             <AppBarButton Icon="Add" Label="收藏人物" Click="Collect_Click" />
         </CommandBar>
 
-        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
-            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
-        </Popup>
+        <InfoBar
+            x:Name="StatusBar"
+            Grid.RowSpan="2"
+            MaxWidth="560"
+            Margin="0,0,0,4"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Canvas.ZIndex="10"
+            IsOpen="False" />
 
         <ScrollViewer Grid.Row="1">
-            <Grid ColumnSpacing="24" RowSpacing="12">
+            <Grid x:Name="PersonContentGrid" ColumnSpacing="24" RowSpacing="12">
+                <VisualStateManager.VisualStateGroups>
+                    <VisualStateGroup>
+                        <VisualState x:Name="NarrowPerson">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="0" />
+                            </VisualState.StateTriggers>
+                            <VisualState.Setters>
+                                <Setter Target="PortraitBorder.(Grid.ColumnSpan)" Value="2" />
+                                <Setter Target="PortraitBorder.HorizontalAlignment" Value="Center" />
+                                <Setter Target="PersonTextContent.(Grid.Row)" Value="1" />
+                                <Setter Target="PersonTextContent.(Grid.Column)" Value="0" />
+                                <Setter Target="PersonTextContent.(Grid.ColumnSpan)" Value="2" />
+                            </VisualState.Setters>
+                        </VisualState>
+                        <VisualState x:Name="WidePerson">
+                            <VisualState.StateTriggers>
+                                <AdaptiveTrigger MinWindowWidth="640" />
+                            </VisualState.StateTriggers>
+                        </VisualState>
+                    </VisualStateGroup>
+                </VisualStateManager.VisualStateGroups>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="180" />
                     <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
-                <Border Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Top">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Border x:Name="PortraitBorder" Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Top">
                     <Image x:Name="PortraitImage" Stretch="UniformToFill" />
                 </Border>
-                <StackPanel Grid.Column="1" Spacing="10">
+                <StackPanel x:Name="PersonTextContent" Grid.Column="1" Spacing="10">
                     <TextBlock x:Name="NameText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
                     <TextBlock x:Name="CareerText" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
                     <TextBlock x:Name="SummaryText" TextWrapping="Wrap" />

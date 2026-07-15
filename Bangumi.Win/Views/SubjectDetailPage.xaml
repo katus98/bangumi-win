@@ -8,13 +8,14 @@
         <Image x:Name="BackdropImage" Stretch="UniformToFill" Opacity="0.18" IsHitTestVisible="False" Canvas.ZIndex="0" />
         <Rectangle Fill="{ThemeResource ApplicationPageBackgroundThemeBrush}" Opacity="0.88" IsHitTestVisible="False" Canvas.ZIndex="1" />
 
-        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False" Canvas.ZIndex="3">
-            <InfoBar
-                x:Name="StatusBar"
-                MinWidth="320"
-                MaxWidth="720"
-                IsOpen="False" />
-        </Popup>
+        <InfoBar
+            x:Name="StatusBar"
+            MaxWidth="560"
+            Margin="0,0,0,4"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Canvas.ZIndex="3"
+            IsOpen="False" />
 
         <ScrollViewer x:Name="DetailScrollViewer" Canvas.ZIndex="2" ViewChanged="DetailScrollViewer_ViewChanged">
             <Grid RowSpacing="18">
@@ -24,22 +25,56 @@
                 </Grid.RowDefinitions>
 
                 <Border Padding="20" CornerRadius="8" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}">
-                    <Grid ColumnSpacing="24" MinHeight="240">
+                    <Grid x:Name="SubjectHeaderGrid" ColumnSpacing="24" MinHeight="240">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup>
+                                <VisualState x:Name="NarrowHeader">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="0" />
+                                    </VisualState.StateTriggers>
+                                    <VisualState.Setters>
+                                        <Setter Target="SubjectCoverBorder.(Grid.ColumnSpan)" Value="2" />
+                                        <Setter Target="SubjectCoverBorder.HorizontalAlignment" Value="Center" />
+                                        <Setter Target="SubjectHeaderContent.(Grid.Row)" Value="1" />
+                                        <Setter Target="SubjectHeaderContent.(Grid.Column)" Value="0" />
+                                        <Setter Target="SubjectHeaderContent.(Grid.ColumnSpan)" Value="2" />
+                                        <Setter Target="SubjectHeaderContent.Margin" Value="0,20,0,0" />
+                                        <Setter Target="CollectionStatusButton.(Grid.Row)" Value="1" />
+                                        <Setter Target="CollectionStatusButton.(Grid.Column)" Value="0" />
+                                        <Setter Target="CollectionStatusButton.HorizontalAlignment" Value="Left" />
+                                        <Setter Target="CollectionStatusButton.Margin" Value="0,12,0,0" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="WideHeader">
+                                    <VisualState.StateTriggers>
+                                        <AdaptiveTrigger MinWindowWidth="720" />
+                                    </VisualState.StateTriggers>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="180" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
 
-                        <Border Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Center">
+                        <Border x:Name="SubjectCoverBorder" Width="160" Height="220" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="4" VerticalAlignment="Center">
                             <Image x:Name="CoverImage" Stretch="UniformToFill" />
                         </Border>
 
-                        <StackPanel Grid.Column="1" Spacing="14" VerticalAlignment="Center">
+                        <StackPanel x:Name="SubjectHeaderContent" Grid.Column="1" Spacing="14" VerticalAlignment="Center">
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
                                 <TextBlock x:Name="TitleText" Style="{ThemeResource TitleTextBlockStyle}" TextWrapping="Wrap" />
                                 <Button x:Name="CollectionStatusButton" Grid.Column="1" MinWidth="108" Padding="14,8" VerticalAlignment="Top" Click="CollectionStatus_Click" />
                             </Grid>
@@ -89,7 +124,7 @@
                         <ItemsControl x:Name="TagsItems">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal" />
+                                    <ItemsWrapGrid Orientation="Horizontal" />
                                 </ItemsPanelTemplate>
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>

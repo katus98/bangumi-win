@@ -8,31 +8,42 @@ public sealed class TokenStore
     private const string TokenKey = "BangumiAccessToken";
     private const string VaultResource = "Bangumi.Win";
     private const string VaultUserName = "BangumiAccessToken";
+    private string? _accessToken;
 
-    public bool HasToken => !string.IsNullOrWhiteSpace(AccessToken);
+    public TokenStore()
+    {
+        _accessToken = ReadFromVault();
+
+        // Migrate tokens saved by older builds, then remove the plaintext copy.
+        if (ApplicationData.Current.LocalSettings.Values[TokenKey] is string legacyToken
+            && !string.IsNullOrWhiteSpace(legacyToken))
+        {
+            _accessToken ??= legacyToken.Trim();
+            _ = WriteToVault(_accessToken);
+        }
+
+        ApplicationData.Current.LocalSettings.Values.Remove(TokenKey);
+    }
+
+    public bool HasToken => !string.IsNullOrWhiteSpace(_accessToken);
 
     public string? AccessToken
     {
-        get => ReadFromVault() ?? ApplicationData.Current.LocalSettings.Values[TokenKey] as string;
+        get => _accessToken;
         set
         {
             if (string.IsNullOrWhiteSpace(value))
             {
+                _accessToken = null;
                 RemoveFromVault();
-                ApplicationData.Current.LocalSettings.Values.Remove(TokenKey);
             }
             else
             {
-                var token = value.Trim();
-                if (!WriteToVault(token))
-                {
-                    ApplicationData.Current.LocalSettings.Values[TokenKey] = token;
-                }
-                else
-                {
-                    ApplicationData.Current.LocalSettings.Values.Remove(TokenKey);
-                }
+                _accessToken = value.Trim();
+                _ = WriteToVault(_accessToken);
             }
+
+            ApplicationData.Current.LocalSettings.Values.Remove(TokenKey);
         }
     }
 

@@ -7,17 +7,20 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Bangumi.Win.Views;
 
 public sealed partial class CollectionsPage : Page
 {
-    private const int PageSize = 30;
     private readonly ObservableCollection<SubjectCollection> _collections = [];
     private int _offset;
     private int _total;
     private bool _isLoading;
     private string? _username;
+    private CancellationTokenSource? _loadCts;
+    private bool _isSubscribedToAuthChanges;
 
     public CollectionsPage()
     {
@@ -26,10 +29,34 @@ public sealed partial class CollectionsPage : Page
         CreateTabs(SubjectTypeTabs, BangumiConstants.CollectionSubjectTypes);
         CreateTabs(CollectionStatusTabs, BangumiConstants.GetCollectionStatuses(GetSelectedValue(SubjectTypeTabs)));
         Loaded += CollectionsPage_Loaded;
+        Unloaded += CollectionsPage_Unloaded;
     }
 
     private async void CollectionsPage_Loaded(object sender, RoutedEventArgs e)
     {
+        if (!_isSubscribedToAuthChanges)
+        {
+            AppServices.AuthStateChanged += OnAuthStateChanged;
+            _isSubscribedToAuthChanges = true;
+        }
+
+        await LoadCollectionsAsync(reset: true);
+    }
+
+    private void CollectionsPage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (_isSubscribedToAuthChanges)
+        {
+            AppServices.AuthStateChanged -= OnAuthStateChanged;
+            _isSubscribedToAuthChanges = false;
+        }
+
+        CancelCurrentLoad();
+    }
+
+    private async void OnAuthStateChanged(object? sender, EventArgs e)
+    {
+        _username = null;
         await LoadCollectionsAsync(reset: true);
     }
 
@@ -49,11 +76,22 @@ public sealed partial class CollectionsPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task LoadCollectionsAsync(bool reset)
+    private async Task LoadCollectionsAsync(bool reset)
     {
-        if (_isLoading)
+        if (!reset && _isLoading)
         {
             return;
+        }
+
+        var requestCts = reset ? ReplaceLoadCancellation() : _loadCts ??= new CancellationTokenSource();
+        var subjectType = GetSelectedValue(SubjectTypeTabs);
+        var collectionType = GetSelectedValue(CollectionStatusTabs);
+
+        if (reset)
+        {
+            _offset = 0;
+            _total = 0;
+            _collections.Clear();
         }
 
         if (!AppServices.TokenStore.HasToken)
@@ -65,16 +103,14 @@ public sealed partial class CollectionsPage : Page
         try
         {
             _isLoading = true;
-            if (reset)
+            ShowStatus("正在加载收藏...", InfoBarSeverity.Informational);
+            _username ??= (await AppServices.GetCurrentUserAsync(cancellationToken: requestCts.Token)).Username;
+            var result = await AppServices.ApiClient.GetCollectionsAsync(_username, subjectType, collectionType, _offset, requestCts.Token);
+            if (!ReferenceEquals(requestCts, _loadCts))
             {
-                _offset = 0;
-                _total = 0;
-                _collections.Clear();
+                return;
             }
 
-            ShowStatus("正在加载收藏...", InfoBarSeverity.Informational);
-            _username ??= (await AppServices.ApiClient.GetMeAsync()).Username;
-            var result = await AppServices.ApiClient.GetCollectionsAsync(_username, GetSelectedValue(SubjectTypeTabs), GetSelectedValue(CollectionStatusTabs), _offset);
             _total = result.Total;
             foreach (var item in result.Data)
             {
@@ -84,14 +120,35 @@ public sealed partial class CollectionsPage : Page
             _offset += result.Data.Count;
             HideStatus();
         }
+        catch (OperationCanceledException) when (requestCts.IsCancellationRequested)
+        {
+        }
         catch (Exception ex)
         {
             ShowStatus($"加载失败：{ex.Message}", InfoBarSeverity.Error);
         }
         finally
         {
-            _isLoading = false;
+            if (ReferenceEquals(requestCts, _loadCts))
+            {
+                _isLoading = false;
+            }
         }
+    }
+
+    private CancellationTokenSource ReplaceLoadCancellation()
+    {
+        CancelCurrentLoad();
+        _loadCts = new CancellationTokenSource();
+        return _loadCts;
+    }
+
+    private void CancelCurrentLoad()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = null;
+        _isLoading = false;
     }
 
     private void CreateTabs(StackPanel tabHost, IReadOnlyList<OptionItem<int?>> items)
@@ -172,11 +229,11 @@ public sealed partial class CollectionsPage : Page
 
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
+        StatusInfoBarHelper.Show(StatusBar, message, severity);
     }
 
     private void HideStatus()
     {
-        StatusPopupHelper.Hide(StatusPopup, StatusBar);
+        StatusInfoBarHelper.Hide(StatusBar);
     }
 }

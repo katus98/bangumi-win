@@ -18,6 +18,7 @@ namespace Bangumi.Win.Services;
 public sealed class BangumiApiClient
 {
     private static readonly Uri BaseUri = new("https://api.bgm.tv");
+    private static readonly string UserAgent = $"Bangumi.Win/{typeof(BangumiApiClient).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"} (https://github.com/katus/bangumi-win)";
     private readonly HttpClient _httpClient;
     private readonly TokenStore _tokenStore;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -29,14 +30,24 @@ public sealed class BangumiApiClient
     public BangumiApiClient(TokenStore tokenStore)
     {
         _tokenStore = tokenStore;
-        _httpClient = new HttpClient { BaseAddress = BaseUri };
-        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Bangumi.Win/0.1.0 (https://github.com/katus/bangumi-win)");
+        _httpClient = new HttpClient
+        {
+            BaseAddress = BaseUri,
+            Timeout = TimeSpan.FromSeconds(30)
+        };
+        _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
     public async Task<BangumiUser> GetMeAsync(CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, "/v0/me");
+        using var request = CreateRequest(HttpMethod.Get, "/v0/me", requiresAuthentication: true);
+        return await SendAsync<BangumiUser>(request, cancellationToken);
+    }
+
+    public async Task<BangumiUser> GetMeAsync(string accessToken, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, "/v0/me", requiresAuthentication: true, accessToken);
         return await SendAsync<BangumiUser>(request, cancellationToken);
     }
 
@@ -66,13 +77,13 @@ public sealed class BangumiApiClient
             query.Add($"type={ct}");
         }
 
-        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/{Uri.EscapeDataString(username)}/collections?{string.Join("&", query)}");
+        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/{Uri.EscapeDataString(username)}/collections?{string.Join("&", query)}", requiresAuthentication: true);
         return await SendAsync<PagedResponse<SubjectCollection>>(request, cancellationToken);
     }
 
     public async Task<SubjectCollection> GetCollectionAsync(string username, int subjectId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/{Uri.EscapeDataString(username)}/collections/{subjectId}");
+        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/{Uri.EscapeDataString(username)}/collections/{subjectId}", requiresAuthentication: true);
         return await SendAsync<SubjectCollection>(request, cancellationToken);
     }
 
@@ -93,7 +104,7 @@ public sealed class BangumiApiClient
             body["vol_status"] = volStatus;
         }
 
-        using var request = CreateRequest(HttpMethod.Post, $"/v0/users/-/collections/{subjectId}");
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/users/-/collections/{subjectId}", requiresAuthentication: true);
         request.Content = CreateJsonContent(body);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
@@ -101,7 +112,7 @@ public sealed class BangumiApiClient
 
     public async Task<PagedResponse<UserEpisodeCollection>> GetEpisodeCollectionsAsync(int subjectId, int offset = 0, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/-/collections/{subjectId}/episodes?limit=1000&offset={offset}&episode_type=0");
+        using var request = CreateRequest(HttpMethod.Get, $"/v0/users/-/collections/{subjectId}/episodes?limit=1000&offset={offset}&episode_type=0", requiresAuthentication: true);
         return await SendAsync<PagedResponse<UserEpisodeCollection>>(request, cancellationToken);
     }
 
@@ -112,23 +123,15 @@ public sealed class BangumiApiClient
             return;
         }
 
-        using var request = CreateRequest(HttpMethod.Patch, $"/v0/users/-/collections/{subjectId}/episodes");
+        using var request = CreateRequest(HttpMethod.Patch, $"/v0/users/-/collections/{subjectId}/episodes", requiresAuthentication: true);
         request.Content = CreateJsonContent(new { episode_id = episodeIds, type = status });
-        using var response = await _httpClient.SendAsync(request, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-    }
-
-    public async Task AddCollectionAsync(int subjectId, int status = 3, CancellationToken cancellationToken = default)
-    {
-        using var request = CreateRequest(HttpMethod.Post, $"/v0/users/-/collections/{subjectId}");
-        request.Content = CreateJsonContent(new { type = status });
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
     public async Task DeleteCollectionAsync(int subjectId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Delete, $"/v0/users/-/collections/{subjectId}");
+        using var request = CreateRequest(HttpMethod.Delete, $"/v0/users/-/collections/{subjectId}", requiresAuthentication: true);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
@@ -165,7 +168,7 @@ public sealed class BangumiApiClient
 
     public async Task CollectPersonAsync(int personId, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, $"/v0/persons/{personId}/collect");
+        using var request = CreateRequest(HttpMethod.Post, $"/v0/persons/{personId}/collect", requiresAuthentication: true);
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
     }
@@ -222,10 +225,10 @@ public sealed class BangumiApiClient
         }).ToList();
     }
 
-    private HttpRequestMessage CreateRequest(HttpMethod method, string path)
+    private HttpRequestMessage CreateRequest(HttpMethod method, string path, bool requiresAuthentication = false, string? accessToken = null)
     {
         var request = new HttpRequestMessage(method, path);
-        if (_tokenStore.AccessToken is { Length: > 0 } token)
+        if (requiresAuthentication && (accessToken ?? _tokenStore.AccessToken) is { Length: > 0 } token)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         }
@@ -255,8 +258,54 @@ public sealed class BangumiApiClient
             return;
         }
 
-        var detail = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new HttpRequestException($"Bangumi API request failed: {(int)response.StatusCode} {response.ReasonPhrase}. {detail}");
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        var detail = TryGetErrorDetail(body);
+        var message = response.StatusCode switch
+        {
+            HttpStatusCode.Unauthorized => "登录已失效，请重新登录。",
+            HttpStatusCode.Forbidden => "当前账号没有执行此操作的权限。",
+            HttpStatusCode.NotFound => "请求的内容不存在。",
+            HttpStatusCode.TooManyRequests => "请求过于频繁，请稍后重试。",
+            >= HttpStatusCode.InternalServerError => $"Bangumi 服务暂时不可用（{(int)response.StatusCode}）。",
+            _ => $"Bangumi 请求失败（{(int)response.StatusCode}）。"
+        };
+
+        if (!string.IsNullOrWhiteSpace(detail)
+            && response.StatusCode is not HttpStatusCode.Unauthorized
+            && response.StatusCode is not HttpStatusCode.Forbidden)
+        {
+            message = $"{message} {detail}";
+        }
+
+        throw new HttpRequestException(message, null, response.StatusCode);
+    }
+
+    private static string? TryGetErrorDetail(string body)
+    {
+        if (string.IsNullOrWhiteSpace(body) || body.AsSpan().TrimStart().StartsWith("<"))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            foreach (var propertyName in new[] { "description", "message", "error" })
+            {
+                if (document.RootElement.TryGetProperty(propertyName, out var value)
+                    && value.ValueKind == JsonValueKind.String
+                    && value.GetString() is { Length: > 0 } detail)
+                {
+                    detail = detail.Trim();
+                    return detail.Length <= 160 ? detail : $"{detail[..157]}...";
+                }
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return null;
     }
 
     private static IReadOnlyList<TimelineEntry> ParseTimelineHtml(string html, string username)
