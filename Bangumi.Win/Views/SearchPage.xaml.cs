@@ -7,6 +7,8 @@ using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Bangumi.Win.Views;
 
@@ -18,6 +20,7 @@ public sealed partial class SearchPage : Page
     private bool _hasMore;
     private bool _isLoading;
     private ScrollViewer? _resultScrollViewer;
+    private CancellationTokenSource? _searchCts;
 
     public SearchPage()
     {
@@ -43,6 +46,18 @@ public sealed partial class SearchPage : Page
         }
 
         UpdateTabStyles();
+        Unloaded += SearchPage_Unloaded;
+    }
+
+    private void SearchPage_Unloaded(object sender, RoutedEventArgs e)
+    {
+        if (_resultScrollViewer is not null)
+        {
+            _resultScrollViewer.ViewChanged -= ResultScrollViewer_ViewChanged;
+            _resultScrollViewer = null;
+        }
+
+        CancelCurrentSearch();
     }
 
     private async void Search_Click(object sender, RoutedEventArgs e) => await SearchAsync(reset: true);
@@ -78,6 +93,11 @@ public sealed partial class SearchPage : Page
 
     private void ResultList_Loaded(object sender, RoutedEventArgs e)
     {
+        if (_resultScrollViewer is not null)
+        {
+            _resultScrollViewer.ViewChanged -= ResultScrollViewer_ViewChanged;
+        }
+
         _resultScrollViewer = FindDescendant<ScrollViewer>(ResultList);
         if (_resultScrollViewer is not null)
         {
@@ -106,9 +126,9 @@ public sealed partial class SearchPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task SearchAsync(bool reset)
+    private async Task SearchAsync(bool reset)
     {
-        if (_isLoading)
+        if (!reset && _isLoading)
         {
             return;
         }
@@ -116,23 +136,38 @@ public sealed partial class SearchPage : Page
         var keyword = KeywordBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(keyword))
         {
+            if (reset)
+            {
+                CancelCurrentSearch();
+                _results.Clear();
+                _offset = 0;
+                _hasMore = false;
+            }
+
             ShowStatus("请输入搜索关键词。", InfoBarSeverity.Warning);
             return;
+        }
+
+        var requestCts = reset ? ReplaceSearchCancellation() : _searchCts ??= new CancellationTokenSource();
+        var type = SearchTypeTabs.Children.OfType<Button>().FirstOrDefault(button => !button.IsEnabled)?.Tag is OptionItem<int?> item ? item.Value : null;
+
+        if (reset)
+        {
+            _offset = 0;
+            _hasMore = true;
+            _results.Clear();
         }
 
         try
         {
             _isLoading = true;
-            if (reset)
+            ShowStatus("正在搜索...", InfoBarSeverity.Informational);
+            var page = await AppServices.ApiClient.SearchAsync(keyword, type, _offset, requestCts.Token);
+            if (!ReferenceEquals(requestCts, _searchCts))
             {
-                _offset = 0;
-                _hasMore = true;
-                _results.Clear();
+                return;
             }
 
-            ShowStatus("正在搜索...", InfoBarSeverity.Informational);
-            var type = SearchTypeTabs.Children.OfType<Button>().FirstOrDefault(button => !button.IsEnabled)?.Tag is OptionItem<int?> item ? item.Value : null;
-            var page = await AppServices.ApiClient.SearchAsync(keyword, type, _offset);
             foreach (var result in page)
             {
                 _results.Add(result);
@@ -142,24 +177,45 @@ public sealed partial class SearchPage : Page
             _hasMore = page.Count == PageSize;
             HideStatus();
         }
+        catch (OperationCanceledException) when (requestCts.IsCancellationRequested)
+        {
+        }
         catch (Exception ex)
         {
             ShowStatus($"搜索失败：{ex.Message}", InfoBarSeverity.Error);
         }
         finally
         {
-            _isLoading = false;
+            if (ReferenceEquals(requestCts, _searchCts))
+            {
+                _isLoading = false;
+            }
         }
+    }
+
+    private CancellationTokenSource ReplaceSearchCancellation()
+    {
+        CancelCurrentSearch();
+        _searchCts = new CancellationTokenSource();
+        return _searchCts;
+    }
+
+    private void CancelCurrentSearch()
+    {
+        _searchCts?.Cancel();
+        _searchCts?.Dispose();
+        _searchCts = null;
+        _isLoading = false;
     }
 
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
+        StatusInfoBarHelper.Show(StatusBar, message, severity);
     }
 
     private void HideStatus()
     {
-        StatusPopupHelper.Hide(StatusPopup, StatusBar);
+        StatusInfoBarHelper.Hide(StatusBar);
     }
 
     private void UpdateTabStyles()

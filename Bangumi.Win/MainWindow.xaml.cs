@@ -18,10 +18,12 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        ApplyTheme();
         ConfigureTitleBar();
         ContentFrame.Navigated += (_, _) => UpdateBackButton();
         AppServices.AuthStateChanged += OnAuthStateChanged;
-        Navigate(AppServices.TokenStore.HasToken ? "home" : "home");
+        AppServices.Settings.ThemeChanged += OnThemeChanged;
+        Navigate("home");
         _ = RefreshAccountAsync();
     }
 
@@ -89,10 +91,6 @@ public sealed partial class MainWindow : Window
         titleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         titleBar.ButtonBackgroundColor = Colors.Transparent;
         titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
-        titleBar.ButtonHoverBackgroundColor = Colors.Transparent;
-        titleBar.ButtonPressedBackgroundColor = Colors.Transparent;
-        titleBar.ButtonForegroundColor = Colors.White;
-        titleBar.ButtonInactiveForegroundColor = Colors.Gray;
     }
 
     private async void AccountButton_Click(object sender, RoutedEventArgs e)
@@ -122,30 +120,60 @@ public sealed partial class MainWindow : Window
             XamlRoot = ContentFrame.XamlRoot
         };
 
-        var result = await dialog.ShowAsync();
-        if (result == ContentDialogResult.Primary)
+        dialog.PrimaryButtonClick += async (_, args) =>
         {
-            if (string.IsNullOrWhiteSpace(tokenBox.Password))
+            args.Cancel = true;
+            var deferral = args.GetDeferral();
+            try
             {
-                return;
-            }
+                if (string.IsNullOrWhiteSpace(tokenBox.Password))
+                {
+                    userInfo.Text = "请输入 access token。";
+                    return;
+                }
 
-            AppServices.TokenStore.AccessToken = tokenBox.Password;
-            await RefreshAccountAsync();
-            AppServices.NotifyAuthStateChanged();
-        }
-        else if (result == ContentDialogResult.Secondary)
+                dialog.IsPrimaryButtonEnabled = false;
+                tokenBox.IsEnabled = false;
+                userInfo.Text = "正在验证 token...";
+                _currentUser = await AppServices.SignInAsync(tokenBox.Password);
+                UpdateAccountButton();
+                args.Cancel = false;
+            }
+            catch (Exception ex)
+            {
+                userInfo.Text = $"登录失败：{ex.Message}";
+            }
+            finally
+            {
+                dialog.IsPrimaryButtonEnabled = true;
+                tokenBox.IsEnabled = true;
+                deferral.Complete();
+            }
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.Secondary)
         {
-            AppServices.TokenStore.Clear();
-            _currentUser = null;
-            UpdateAccountButton();
-            AppServices.NotifyAuthStateChanged();
+            AppServices.SignOut();
         }
     }
 
-    private async void OnAuthStateChanged(object? sender, EventArgs e)
+    private void OnAuthStateChanged(object? sender, EventArgs e)
     {
-        await RefreshAccountAsync();
+        _currentUser = AppServices.CurrentUser;
+        UpdateAccountButton();
+    }
+
+    private void OnThemeChanged(object? sender, EventArgs e) => ApplyTheme();
+
+    private void ApplyTheme()
+    {
+        RootLayout.RequestedTheme = AppServices.Settings.Theme switch
+        {
+            AppTheme.Light => ElementTheme.Light,
+            AppTheme.Dark => ElementTheme.Dark,
+            _ => ElementTheme.Default
+        };
     }
 
     private async System.Threading.Tasks.Task RefreshAccountAsync()
@@ -159,7 +187,7 @@ public sealed partial class MainWindow : Window
 
         try
         {
-            _currentUser = await AppServices.ApiClient.GetMeAsync();
+            _currentUser = await AppServices.GetCurrentUserAsync();
         }
         catch
         {

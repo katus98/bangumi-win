@@ -11,17 +11,11 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="基础设置" FontWeight="SemiBold" />
                 <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="跟随系统主题" />
-                            <TextBlock Text="应用将使用 Windows 当前主题设置。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                        <ToggleSwitch Grid.Column="1" IsOn="True" OffContent="关" OnContent="开" />
-                    </Grid>
+                    <RadioButtons x:Name="ThemeSelector" Header="应用主题" MaxColumns="3">
+                        <x:String>跟随系统</x:String>
+                        <x:String>浅色</x:String>
+                        <x:String>深色</x:String>
+                    </RadioButtons>
                 </Border>
             </StackPanel>
 
@@ -29,9 +23,10 @@
                 <TextBlock Text="关于" FontWeight="SemiBold" />
                 <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Bangumi" FontWeight="SemiBold" />
+                        <TextBlock Text="番喵" FontWeight="SemiBold" />
                         <TextBlock Text="Windows 11 风格的 Bangumi 第三方客户端。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="版本 0.1.0" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        <TextBlock Text="本应用与 Bangumi 官方无隶属关系。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock x:Name="VersionText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                     </StackPanel>
                 </Border>
             </StackPanel>
@@ -39,9 +34,10 @@
             <StackPanel Spacing="8">
                 <TextBlock Text="开源信息" FontWeight="SemiBold" />
                 <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
-                    <StackPanel Spacing="4">
+                    <StackPanel Spacing="8">
                         <TextBlock Text="本项目使用 WinUI 3、Windows App SDK 和 Bangumi API。" TextWrapping="Wrap" />
-                        <TextBlock Text="Bangumi API 文档：https://bangumi.github.io/api/" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                        <HyperlinkButton HorizontalAlignment="Left" Content="项目源代码" NavigateUri="https://github.com/katus/bangumi-win" />
+                        <HyperlinkButton HorizontalAlignment="Left" Content="Bangumi API 文档" NavigateUri="https://bangumi.github.io/api/" />
                     </StackPanel>
                 </Border>
             </StackPanel>

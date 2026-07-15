@@ -5,12 +5,15 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.UI.Xaml.Navigation;
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Bangumi.Win.Views;
 
 public sealed partial class PersonDetailPage : Page
 {
     private PersonDetail? _person;
+    private CancellationTokenSource? _loadCts;
 
     public PersonDetailPage()
     {
@@ -22,16 +25,15 @@ public sealed partial class PersonDetailPage : Page
         base.OnNavigatedTo(e);
         if (e.Parameter is int personId)
         {
-            await LoadPersonAsync(personId);
+            var requestCts = ReplaceLoadCancellation();
+            await LoadPersonAsync(personId, requestCts.Token);
         }
     }
 
-    private void Back_Click(object sender, RoutedEventArgs e)
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
     {
-        if (Frame.CanGoBack)
-        {
-            Frame.GoBack();
-        }
+        CancelCurrentLoad();
+        base.OnNavigatedFrom(e);
     }
 
     private async void Collect_Click(object sender, RoutedEventArgs e)
@@ -58,21 +60,24 @@ public sealed partial class PersonDetailPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task LoadPersonAsync(int personId)
+    private async Task LoadPersonAsync(int personId, CancellationToken cancellationToken)
     {
         try
         {
             ShowStatus("正在加载人物详情...", InfoBarSeverity.Informational);
-            _person = await AppServices.ApiClient.GetPersonAsync(personId);
+            _person = await AppServices.ApiClient.GetPersonAsync(personId, cancellationToken);
             NameText.Text = _person.Name;
             CareerText.Text = _person.CareerText;
             SummaryText.Text = _person.Summary ?? _person.ShortSummary ?? "暂无简介";
-            if (!string.IsNullOrWhiteSpace(_person.ImageUrl))
+            if (Uri.TryCreate(_person.ImageUrl, UriKind.Absolute, out var imageUri))
             {
-                PortraitImage.Source = new BitmapImage(new Uri(_person.ImageUrl));
+                PortraitImage.Source = new BitmapImage(imageUri);
             }
 
             HideStatus();
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
@@ -80,13 +85,27 @@ public sealed partial class PersonDetailPage : Page
         }
     }
 
+    private CancellationTokenSource ReplaceLoadCancellation()
+    {
+        CancelCurrentLoad();
+        _loadCts = new CancellationTokenSource();
+        return _loadCts;
+    }
+
+    private void CancelCurrentLoad()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = null;
+    }
+
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
+        StatusInfoBarHelper.Show(StatusBar, message, severity);
     }
 
     private void HideStatus()
     {
-        StatusPopupHelper.Hide(StatusPopup, StatusBar);
+        StatusInfoBarHelper.Hide(StatusBar);
     }
 }

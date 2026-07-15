@@ -14,23 +14,31 @@
 
         <TextBlock Text="收藏" Style="{ThemeResource TitleTextBlockStyle}" />
 
-        <StackPanel
-            x:Name="SubjectTypeTabs"
-            Grid.Row="1"
-            Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            Spacing="8" />
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+            <StackPanel
+                x:Name="SubjectTypeTabs"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="8" />
+        </ScrollViewer>
 
-        <StackPanel
-            x:Name="CollectionStatusTabs"
-            Grid.Row="2"
-            Orientation="Horizontal"
-            HorizontalAlignment="Center"
-            Spacing="6" />
+        <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" HorizontalScrollMode="Enabled" VerticalScrollMode="Disabled">
+            <StackPanel
+                x:Name="CollectionStatusTabs"
+                Orientation="Horizontal"
+                HorizontalAlignment="Center"
+                Spacing="6" />
+        </ScrollViewer>
 
-        <Popup x:Name="StatusPopup" IsLightDismissEnabled="False">
-            <InfoBar x:Name="StatusBar" MinWidth="320" MaxWidth="720" IsOpen="False" />
-        </Popup>
+        <InfoBar
+            x:Name="StatusBar"
+            Grid.RowSpan="4"
+            MaxWidth="560"
+            Margin="0,0,0,4"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Bottom"
+            Canvas.ZIndex="10"
+            IsOpen="False" />
 
         <ListView
             x:Name="CollectionList"

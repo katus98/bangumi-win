@@ -11,13 +11,16 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Bangumi.Win.Views;
 
 public sealed partial class SubjectDetailPage : Page
 {
     private SubjectSummary? _subject;
-    private SubjectCollection? _collection;
     private int? _collectionStatus;
     private readonly ObservableCollection<SubjectComment> _comments = [];
     private List<UserEpisodeCollection> _episodes = [];
@@ -25,6 +28,7 @@ public sealed partial class SubjectDetailPage : Page
     private bool _isLoadingComments;
     private bool _commentsFinished;
     private int _commentOffset;
+    private CancellationTokenSource? _loadCts;
 
     public SubjectDetailPage()
     {
@@ -65,6 +69,12 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        CancelCurrentLoad();
+        base.OnNavigatedFrom(e);
+    }
+
     private void CollectionStatus_Click(object sender, RoutedEventArgs e)
     {
         if (_subject is null)
@@ -99,22 +109,32 @@ public sealed partial class SubjectDetailPage : Page
         flyout.ShowAt(button);
     }
 
-    private async System.Threading.Tasks.Task LoadSubjectAsync(int subjectId, SubjectSummary? fallbackSubject = null)
+    private async Task LoadSubjectAsync(int subjectId, SubjectSummary? fallbackSubject = null)
     {
+        var requestCts = ReplaceLoadCancellation();
         try
         {
             ShowStatus("正在加载条目详情...", InfoBarSeverity.Informational);
-            _subject = await AppServices.ApiClient.GetSubjectAsync(subjectId);
+            _subject = await AppServices.ApiClient.GetSubjectAsync(subjectId, requestCts.Token);
+            if (!ReferenceEquals(requestCts, _loadCts))
+            {
+                return;
+            }
+
             RenderSubject(_subject);
             CommentList.ItemsSource = _comments;
             _comments.Clear();
             _commentOffset = 0;
             _commentsFinished = false;
             CommentStatusText.Text = "正在加载吐槽...";
-
-            await LoadCollectionAsync();
-            await LoadCommentsAsync(reset: true);
             HideStatus();
+
+            await Task.WhenAll(
+                LoadCollectionAsync(requestCts.Token),
+                LoadCommentsAsync(reset: true, requestCts.Token));
+        }
+        catch (OperationCanceledException) when (requestCts.IsCancellationRequested)
+        {
         }
         catch (Exception ex)
         {
@@ -194,9 +214,8 @@ public sealed partial class SubjectDetailPage : Page
             null);
     }
 
-    private async System.Threading.Tasks.Task LoadCollectionAsync()
+    private async Task LoadCollectionAsync(CancellationToken cancellationToken)
     {
-        _collection = null;
         _collectionStatus = null;
         UpdateCollectionButton(null);
         EpisodeStatusList.Visibility = Visibility.Collapsed;
@@ -212,14 +231,14 @@ public sealed partial class SubjectDetailPage : Page
 
         try
         {
-            var me = await AppServices.ApiClient.GetMeAsync();
-            _collection = await AppServices.ApiClient.GetCollectionAsync(me.Username, _subject.Id);
-            _collectionStatus = _collection.Type;
+            var me = await AppServices.GetCurrentUserAsync(cancellationToken: cancellationToken);
+            var collection = await AppServices.ApiClient.GetCollectionAsync(me.Username, _subject.Id, cancellationToken);
+            _collectionStatus = collection.Type;
             UpdateCollectionButton(_collectionStatus);
 
             if (_subject.Type == 2)
             {
-                var episodes = await AppServices.ApiClient.GetEpisodeCollectionsAsync(_subject.Id);
+                var episodes = await AppServices.ApiClient.GetEpisodeCollectionsAsync(_subject.Id, cancellationToken: cancellationToken);
                 _episodes = episodes.Data.OrderBy(item => item.Episode.Sort).ToList();
                 _episodeRows = _episodes.Select(item => new EpisodeStatusRow(item)).ToList();
                 EpisodeStatusList.ItemsSource = _episodeRows;
@@ -227,10 +246,20 @@ public sealed partial class SubjectDetailPage : Page
                 EpisodeEmptyText.Visibility = _episodeRows.Count > 0 ? Visibility.Collapsed : Visibility.Visible;
             }
         }
-        catch
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             _collectionStatus = null;
             UpdateCollectionButton(null);
+        }
+        catch (Exception ex)
+        {
+            _collectionStatus = null;
+            UpdateCollectionButton(null);
+            ShowStatus($"收藏状态读取失败：{ex.Message}", InfoBarSeverity.Warning);
         }
     }
 
@@ -255,7 +284,7 @@ public sealed partial class SubjectDetailPage : Page
         flyout.ShowAt(button);
     }
 
-    private async System.Threading.Tasks.Task UpdateCollectionStatusAsync(int status)
+    private async Task UpdateCollectionStatusAsync(int status)
     {
         if (_subject is null)
         {
@@ -275,7 +304,7 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task DeleteCollectionAsync()
+    private async Task DeleteCollectionAsync()
     {
         if (_subject is null)
         {
@@ -285,7 +314,6 @@ public sealed partial class SubjectDetailPage : Page
         try
         {
             await AppServices.ApiClient.DeleteCollectionAsync(_subject.Id);
-            _collection = null;
             _collectionStatus = null;
             UpdateCollectionButton(null);
             ShowStatus("已取消收藏。", InfoBarSeverity.Success);
@@ -296,7 +324,7 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task UpdateEpisodeAsync(UserEpisodeCollection episode, int status, bool includePrevious)
+    private async Task UpdateEpisodeAsync(UserEpisodeCollection episode, int status, bool includePrevious)
     {
         if (_subject is null)
         {
@@ -315,7 +343,8 @@ public sealed partial class SubjectDetailPage : Page
                 ? _episodeRows.Where(item => item.Source.Episode.Sort <= episode.Episode.Sort).Select(item => item.Source.Episode.Id).ToList()
                 : [episode.Episode.Id];
             await AppServices.ApiClient.UpdateEpisodeCollectionsAsync(_subject.Id, ids, status);
-            foreach (var row in _episodeRows.Where(item => ids.Contains(item.Source.Episode.Id)))
+            var idSet = ids.ToHashSet();
+            foreach (var row in _episodeRows.Where(item => idSet.Contains(item.Source.Episode.Id)))
             {
                 row.UpdateStatus(status);
             }
@@ -328,7 +357,7 @@ public sealed partial class SubjectDetailPage : Page
         }
     }
 
-    private async System.Threading.Tasks.Task LoadCommentsAsync(bool reset = false)
+    private async Task LoadCommentsAsync(bool reset = false, CancellationToken cancellationToken = default)
     {
         if (_subject is null || _isLoadingComments || (_commentsFinished && !reset))
         {
@@ -346,7 +375,7 @@ public sealed partial class SubjectDetailPage : Page
         {
             _isLoadingComments = true;
             CommentStatusText.Text = _commentOffset == 0 ? "正在加载吐槽..." : "正在加载更多...";
-            var page = await AppServices.ApiClient.GetSubjectCommentsAsync(_subject.Id, _commentOffset);
+            var page = await AppServices.ApiClient.GetSubjectCommentsAsync(_subject.Id, _commentOffset, cancellationToken);
             foreach (var comment in page.Data)
             {
                 _comments.Add(comment);
@@ -357,6 +386,10 @@ public sealed partial class SubjectDetailPage : Page
             CommentStatusText.Text = _comments.Count == 0
                 ? "暂无吐槽"
                 : _commentsFinished ? "没有更多吐槽了" : "继续下滑加载更多";
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
         }
         catch
         {
@@ -378,8 +411,23 @@ public sealed partial class SubjectDetailPage : Page
 
         if (scrollViewer.VerticalOffset + scrollViewer.ViewportHeight >= scrollViewer.ExtentHeight - 160)
         {
-            await LoadCommentsAsync();
+            await LoadCommentsAsync(cancellationToken: _loadCts?.Token ?? default);
         }
+    }
+
+    private CancellationTokenSource ReplaceLoadCancellation()
+    {
+        CancelCurrentLoad();
+        _loadCts = new CancellationTokenSource();
+        return _loadCts;
+    }
+
+    private void CancelCurrentLoad()
+    {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = null;
+        _isLoadingComments = false;
     }
 
     private void UpdateCollectionButton(int? status)
@@ -427,12 +475,12 @@ public sealed partial class SubjectDetailPage : Page
 
     private void ShowStatus(string message, InfoBarSeverity severity)
     {
-        StatusPopupHelper.Show(StatusPopup, StatusBar, message, severity, XamlRoot);
+        StatusInfoBarHelper.Show(StatusBar, message, severity);
     }
 
     private void HideStatus()
     {
-        StatusPopupHelper.Hide(StatusPopup, StatusBar);
+        StatusInfoBarHelper.Hide(StatusBar);
     }
 
     private sealed class EpisodeStatusRow(UserEpisodeCollection source) : INotifyPropertyChanged
