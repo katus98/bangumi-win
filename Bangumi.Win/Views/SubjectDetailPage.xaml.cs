@@ -126,6 +126,14 @@ public sealed partial class SubjectDetailPage : Page
             _comments.Clear();
             _commentOffset = 0;
             _commentsFinished = false;
+            if (!AppServices.ContentSafety.IsSubjectVisible(_subject))
+            {
+                _commentsFinished = true;
+                CommentStatusText.Text = string.Empty;
+                HideStatus();
+                return;
+            }
+
             CommentStatusText.Text = "正在加载吐槽...";
             HideStatus();
 
@@ -150,6 +158,25 @@ public sealed partial class SubjectDetailPage : Page
     private void RenderSubject(SubjectSummary subject)
     {
         _subject = subject;
+        if (!AppServices.ContentSafety.IsSubjectVisible(subject))
+        {
+            TitleText.Text = "敏感内容已隐藏";
+            SubtitleText.Text = "此条目被 Bangumi 标记为 NSFW";
+            TypeBadgeText.Text = "NSFW";
+            ScoreText.Text = string.Empty;
+            ProgressHintText.Text = string.Empty;
+            CollectionStatusButton.Content = "已隐藏";
+            CollectionStatusButton.IsEnabled = false;
+            SensitiveContentNotice.IsOpen = true;
+            SubjectDetailsStack.Visibility = Visibility.Collapsed;
+            CoverImage.Source = null;
+            BackdropImage.Source = null;
+            return;
+        }
+
+        CollectionStatusButton.IsEnabled = true;
+        SensitiveContentNotice.IsOpen = false;
+        SubjectDetailsStack.Visibility = Visibility.Visible;
         TitleText.Text = subject.DisplayName;
         SubtitleText.Text = subject.Subtitle;
         TypeBadgeText.Text = subject.TypeLabel;
@@ -191,7 +218,8 @@ public sealed partial class SubjectDetailPage : Page
             null,
             null,
             null,
-            null);
+            null,
+            item.IsNsfw);
     }
 
     private static SubjectSummary CreateSubjectFallback(TimelineEntry item, int subjectId)
@@ -211,7 +239,8 @@ public sealed partial class SubjectDetailPage : Page
             null,
             null,
             null,
-            null);
+            null,
+            false);
     }
 
     private async Task LoadCollectionAsync(CancellationToken cancellationToken)
@@ -375,16 +404,33 @@ public sealed partial class SubjectDetailPage : Page
         {
             _isLoadingComments = true;
             CommentStatusText.Text = _commentOffset == 0 ? "正在加载吐槽..." : "正在加载更多...";
-            var page = await AppServices.ApiClient.GetSubjectCommentsAsync(_subject.Id, _commentOffset, cancellationToken);
-            foreach (var comment in page.Data)
+            var addedCount = 0;
+            var hiddenCount = 0;
+            var fetchedPages = 0;
+            do
             {
-                _comments.Add(comment);
-            }
+                var page = await AppServices.ApiClient.GetSubjectCommentsAsync(_subject.Id, _commentOffset, cancellationToken);
+                foreach (var comment in page.Data)
+                {
+                    if (!AppServices.ContentSafety.IsCommentHidden(_subject.Id, comment))
+                    {
+                        _comments.Add(comment);
+                        addedCount++;
+                    }
+                    else
+                    {
+                        hiddenCount++;
+                    }
+                }
 
-            _commentOffset += page.Data.Count;
-            _commentsFinished = page.Data.Count == 0 || _commentOffset >= page.Total;
+                _commentOffset += page.Data.Count;
+                _commentsFinished = page.Data.Count == 0 || _commentOffset >= page.Total;
+                fetchedPages++;
+            }
+            while (!_commentsFinished && addedCount < 20 && fetchedPages < 5);
+
             CommentStatusText.Text = _comments.Count == 0
-                ? "暂无吐槽"
+                ? hiddenCount > 0 ? "吐槽已按本地隐藏记录隐藏" : "暂无吐槽"
                 : _commentsFinished ? "没有更多吐槽了" : "继续下滑加载更多";
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -400,6 +446,46 @@ public sealed partial class SubjectDetailPage : Page
         {
             _isLoadingComments = false;
         }
+    }
+
+    private async void CommentReport_Click(object sender, RoutedEventArgs e)
+    {
+        if (_subject is null || sender is not Button { Tag: SubjectComment comment })
+        {
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = "举报并隐藏这条吐槽",
+            Content = "该吐槽会立即从本机隐藏。你可以向番喵开发者举报，或前往 Bangumi 网站使用官方处理渠道。",
+            PrimaryButtonText = "举报给开发者",
+            SecondaryButtonText = "在 Bangumi 打开",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.None)
+        {
+            return;
+        }
+
+        AppServices.ContentSafety.HideComment(_subject.Id, comment);
+        _comments.Remove(comment);
+
+        if (result == ContentDialogResult.Primary)
+        {
+            var reportUri = AppServices.ContentSafety.CreateReportUri(
+                "条目吐槽",
+                _subject.Id,
+                ContentSafetyService.GetCommentPublicId(_subject.Id, comment));
+            await Windows.System.Launcher.LaunchUriAsync(reportUri);
+            return;
+        }
+
+        await Windows.System.Launcher.LaunchUriAsync(new Uri($"https://bgm.tv/subject/{_subject.Id}/comments"));
     }
 
     private async void DetailScrollViewer_ViewChanged(object? sender, ScrollViewerViewChangedEventArgs e)

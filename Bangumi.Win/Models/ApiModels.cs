@@ -32,7 +32,8 @@ public sealed record SubjectSummary(
     [property: JsonPropertyName("volumes")] int? Volumes,
     [property: JsonPropertyName("score")] double? Score,
     [property: JsonPropertyName("rating")] SubjectRating? Rating,
-    [property: JsonPropertyName("tags")] List<SubjectTag>? Tags)
+    [property: JsonPropertyName("tags")] List<SubjectTag>? Tags,
+    [property: JsonPropertyName("nsfw")] bool Nsfw)
 {
     public string DisplayName => string.IsNullOrWhiteSpace(NameCn) ? Name : NameCn!;
     public string Subtitle => string.IsNullOrWhiteSpace(NameCn) || NameCn == Name ? TypeLabel : $"{Name} · {TypeLabel}";
@@ -116,7 +117,7 @@ public sealed record TimelineEntry(string Title, string Detail, string UserName,
     public bool HasSubject => SubjectId is not null;
 }
 
-public sealed record SearchResultItem(int Id, string DisplayName, string Subtitle, string Summary, string ImageUrl, int? SubjectType, bool IsPerson)
+public sealed record SearchResultItem(int Id, string DisplayName, string Subtitle, string Summary, string ImageUrl, int? SubjectType, bool IsPerson, bool IsNsfw)
 {
     public string KindLabel => IsPerson ? "人物" : "条目";
 }
@@ -160,7 +161,7 @@ public sealed record UserEpisodeCollection(
 
 }
 
-public sealed record SubjectComment(string UserName, string Content, DateTimeOffset? CreatedAt, int? Rate)
+public sealed record SubjectComment(string UserName, string Content, DateTimeOffset? CreatedAt, int? Rate, string SourceId)
 {
     public string MetaText
     {

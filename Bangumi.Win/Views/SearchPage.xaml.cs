@@ -21,6 +21,7 @@ public sealed partial class SearchPage : Page
     private bool _isLoading;
     private ScrollViewer? _resultScrollViewer;
     private CancellationTokenSource? _searchCts;
+    private bool _isSubscribedToContentChanges;
 
     public SearchPage()
     {
@@ -46,11 +47,27 @@ public sealed partial class SearchPage : Page
         }
 
         UpdateTabStyles();
+        Loaded += SearchPage_Loaded;
         Unloaded += SearchPage_Unloaded;
+    }
+
+    private void SearchPage_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (!_isSubscribedToContentChanges)
+        {
+            AppServices.Settings.ContentFilterChanged += OnContentFilterChanged;
+            _isSubscribedToContentChanges = true;
+        }
     }
 
     private void SearchPage_Unloaded(object sender, RoutedEventArgs e)
     {
+        if (_isSubscribedToContentChanges)
+        {
+            AppServices.Settings.ContentFilterChanged -= OnContentFilterChanged;
+            _isSubscribedToContentChanges = false;
+        }
+
         if (_resultScrollViewer is not null)
         {
             _resultScrollViewer.ViewChanged -= ResultScrollViewer_ViewChanged;
@@ -58,6 +75,14 @@ public sealed partial class SearchPage : Page
         }
 
         CancelCurrentSearch();
+    }
+
+    private async void OnContentFilterChanged(object? sender, EventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(KeywordBox.Text))
+        {
+            await SearchAsync(reset: true);
+        }
     }
 
     private async void Search_Click(object sender, RoutedEventArgs e) => await SearchAsync(reset: true);
@@ -162,20 +187,44 @@ public sealed partial class SearchPage : Page
         {
             _isLoading = true;
             ShowStatus("正在搜索...", InfoBarSeverity.Informational);
-            var page = await AppServices.ApiClient.SearchAsync(keyword, type, _offset, requestCts.Token);
-            if (!ReferenceEquals(requestCts, _searchCts))
+            var addedCount = 0;
+            var hiddenCount = 0;
+            var fetchedPages = 0;
+            do
             {
-                return;
-            }
+                var page = await AppServices.ApiClient.SearchAsync(keyword, type, _offset, requestCts.Token);
+                if (!ReferenceEquals(requestCts, _searchCts))
+                {
+                    return;
+                }
 
-            foreach (var result in page)
+                foreach (var result in page)
+                {
+                    if (AppServices.ContentSafety.IsSearchResultVisible(result))
+                    {
+                        _results.Add(result);
+                        addedCount++;
+                    }
+                    else
+                    {
+                        hiddenCount++;
+                    }
+                }
+
+                _offset += page.Count;
+                _hasMore = page.Count == PageSize;
+                fetchedPages++;
+            }
+            while (_hasMore && addedCount < PageSize && fetchedPages < 5);
+
+            if (hiddenCount > 0)
             {
-                _results.Add(result);
+                ShowStatus($"已按内容安全设置隐藏 {hiddenCount} 条结果。", InfoBarSeverity.Informational);
             }
-
-            _offset += page.Count;
-            _hasMore = page.Count == PageSize;
-            HideStatus();
+            else
+            {
+                HideStatus();
+            }
         }
         catch (OperationCanceledException) when (requestCts.IsCancellationRequested)
         {

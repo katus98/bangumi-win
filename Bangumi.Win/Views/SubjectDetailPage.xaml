@@ -86,11 +86,18 @@
                                 <TextBlock x:Name="ScoreText" VerticalAlignment="Center" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
                                 <TextBlock x:Name="ProgressHintText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                             </StackPanel>
+                            <InfoBar
+                                x:Name="SensitiveContentNotice"
+                                IsOpen="False"
+                                IsClosable="False"
+                                Severity="Warning"
+                                Title="敏感内容已隐藏"
+                                Message="可在设置的“内容安全”中主动选择显示 Bangumi 标记为 NSFW 的条目。" />
                         </StackPanel>
                     </Grid>
                 </Border>
 
-                <StackPanel Grid.Row="1" Spacing="30">
+                <StackPanel x:Name="SubjectDetailsStack" Grid.Row="1" Spacing="30">
                     <StackPanel Spacing="10">
                         <TextBlock Text="章节" Style="{ThemeResource SubtitleTextBlockStyle}" />
                         <ListView x:Name="EpisodeStatusList" MaxHeight="360" SelectionMode="None" Visibility="Collapsed">
@@ -147,14 +154,41 @@
                     </StackPanel>
 
                     <StackPanel Spacing="10">
-                        <TextBlock Text="吐槽" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="吐槽" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                            <HyperlinkButton
+                                Grid.Column="1"
+                                Content="内容准则"
+                                NavigateUri="https://github.com/katus98/bangumi-win/blob/main/CONTENT_GUIDELINES.md" />
+                        </Grid>
                         <ListView x:Name="CommentList" SelectionMode="None">
                             <ListView.ItemTemplate>
                                 <DataTemplate>
-                                    <StackPanel Padding="4,10" Spacing="4">
-                                        <TextBlock Text="{Binding MetaText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
-                                    </StackPanel>
+                                    <Grid Padding="4,10" ColumnSpacing="10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="4">
+                                            <TextBlock Text="{Binding MetaText}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                            <TextBlock Text="{Binding Content}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button
+                                            Grid.Column="1"
+                                            Width="36"
+                                            Height="36"
+                                            Padding="0"
+                                            VerticalAlignment="Top"
+                                            Click="CommentReport_Click"
+                                            Tag="{Binding}"
+                                            ToolTipService.ToolTip="举报并在本机隐藏">
+                                            <SymbolIcon Symbol="Flag" />
+                                        </Button>
+                                    </Grid>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>

@@ -21,6 +21,8 @@ public static class AppServices
 
     public static AppSettings Settings { get; } = new();
 
+    public static ContentSafetyService ContentSafety { get; } = new(ApiClient, Settings);
+
     public static BangumiUser? CurrentUser => _currentUser;
 
     public static async Task<BangumiUser> SignInAsync(string accessToken, CancellationToken cancellationToken = default)

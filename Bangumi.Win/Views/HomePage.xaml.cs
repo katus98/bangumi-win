@@ -20,6 +20,7 @@ public sealed partial class HomePage : Page
     private bool _isLoading;
     private CancellationTokenSource? _loadCts;
     private bool _isSubscribedToAuthChanges;
+    private bool _isSubscribedToContentChanges;
 
     public HomePage()
     {
@@ -37,6 +38,12 @@ public sealed partial class HomePage : Page
             _isSubscribedToAuthChanges = true;
         }
 
+        if (!_isSubscribedToContentChanges)
+        {
+            AppServices.Settings.ContentFilterChanged += OnContentFilterChanged;
+            _isSubscribedToContentChanges = true;
+        }
+
         await LoadTimelineAsync(reset: true);
     }
 
@@ -46,6 +53,12 @@ public sealed partial class HomePage : Page
         {
             AppServices.AuthStateChanged -= OnAuthStateChanged;
             _isSubscribedToAuthChanges = false;
+        }
+
+        if (_isSubscribedToContentChanges)
+        {
+            AppServices.Settings.ContentFilterChanged -= OnContentFilterChanged;
+            _isSubscribedToContentChanges = false;
         }
 
         if (_timelineScrollViewer is not null)
@@ -60,6 +73,11 @@ public sealed partial class HomePage : Page
     private async void OnAuthStateChanged(object? sender, EventArgs e)
     {
         _username = null;
+        await LoadTimelineAsync(reset: true);
+    }
+
+    private async void OnContentFilterChanged(object? sender, EventArgs e)
+    {
         await LoadTimelineAsync(reset: true);
     }
 
@@ -103,6 +121,49 @@ public sealed partial class HomePage : Page
         }
     }
 
+    private async void TimelineReport_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: TimelineEntry entry })
+        {
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            Title = "举报并隐藏这条动态",
+            Content = "该动态会立即从本机隐藏。你可以向番喵开发者举报，或前往 Bangumi 网站使用官方处理渠道。",
+            PrimaryButtonText = "举报给开发者",
+            SecondaryButtonText = "在 Bangumi 打开",
+            CloseButtonText = "取消",
+            DefaultButton = ContentDialogButton.Primary,
+            XamlRoot = XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result == ContentDialogResult.None)
+        {
+            return;
+        }
+
+        AppServices.ContentSafety.HideTimelineEntry(entry);
+        _timeline.Remove(entry);
+
+        if (result == ContentDialogResult.Primary)
+        {
+            var reportUri = AppServices.ContentSafety.CreateReportUri(
+                "时间胶囊动态",
+                entry.SubjectId ?? 0,
+                ContentSafetyService.GetTimelinePublicId(entry));
+            await Windows.System.Launcher.LaunchUriAsync(reportUri);
+            return;
+        }
+
+        var sourceUri = entry.SubjectId is int subjectId
+            ? ContentSafetyService.CreateBangumiSubjectUri(subjectId)
+            : new Uri($"https://bgm.tv/user/{Uri.EscapeDataString(entry.UserName)}/timeline");
+        await Windows.System.Launcher.LaunchUriAsync(sourceUri);
+    }
+
     private async Task LoadTimelineAsync(bool reset)
     {
         if (!reset && _isLoading)
@@ -137,20 +198,44 @@ public sealed partial class HomePage : Page
                 SubtitleText.Text = $"{me.Nickname} 的时间胶囊";
             }
 
-            var pageItems = await AppServices.ApiClient.GetTimelineAsync(_username, _page, requestCts.Token);
-            if (!ReferenceEquals(requestCts, _loadCts))
+            var addedCount = 0;
+            var hiddenCount = 0;
+            var fetchedPages = 0;
+            do
             {
-                return;
-            }
+                var pageItems = await AppServices.ApiClient.GetTimelineAsync(_username, _page, requestCts.Token);
+                if (!ReferenceEquals(requestCts, _loadCts))
+                {
+                    return;
+                }
 
-            foreach (var item in pageItems)
+                var visibleItems = await AppServices.ContentSafety.FilterTimelineAsync(pageItems, requestCts.Token);
+                if (!ReferenceEquals(requestCts, _loadCts))
+                {
+                    return;
+                }
+
+                foreach (var item in visibleItems)
+                {
+                    _timeline.Add(item);
+                    addedCount++;
+                }
+
+                hiddenCount += pageItems.Count - visibleItems.Count;
+                _hasMore = pageItems.Count > 0;
+                _page++;
+                fetchedPages++;
+            }
+            while (_hasMore && addedCount < 20 && fetchedPages < 3);
+
+            if (hiddenCount > 0)
             {
-                _timeline.Add(item);
+                ShowStatus($"已按内容安全设置或本地隐藏记录隐藏 {hiddenCount} 条动态。", InfoBarSeverity.Informational);
             }
-
-            _hasMore = pageItems.Count > 0;
-            _page++;
-            HideStatus();
+            else
+            {
+                HideStatus();
+            }
         }
         catch (OperationCanceledException) when (requestCts.IsCancellationRequested)
         {

@@ -21,6 +21,7 @@ public sealed partial class CollectionsPage : Page
     private string? _username;
     private CancellationTokenSource? _loadCts;
     private bool _isSubscribedToAuthChanges;
+    private bool _isSubscribedToContentChanges;
 
     public CollectionsPage()
     {
@@ -40,6 +41,12 @@ public sealed partial class CollectionsPage : Page
             _isSubscribedToAuthChanges = true;
         }
 
+        if (!_isSubscribedToContentChanges)
+        {
+            AppServices.Settings.ContentFilterChanged += OnContentFilterChanged;
+            _isSubscribedToContentChanges = true;
+        }
+
         await LoadCollectionsAsync(reset: true);
     }
 
@@ -51,6 +58,12 @@ public sealed partial class CollectionsPage : Page
             _isSubscribedToAuthChanges = false;
         }
 
+        if (_isSubscribedToContentChanges)
+        {
+            AppServices.Settings.ContentFilterChanged -= OnContentFilterChanged;
+            _isSubscribedToContentChanges = false;
+        }
+
         CancelCurrentLoad();
     }
 
@@ -60,9 +73,14 @@ public sealed partial class CollectionsPage : Page
         await LoadCollectionsAsync(reset: true);
     }
 
+    private async void OnContentFilterChanged(object? sender, EventArgs e)
+    {
+        await LoadCollectionsAsync(reset: true);
+    }
+
     private async void CollectionList_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
     {
-        if (!_isLoading && _collections.Count < _total && args.ItemIndex >= _collections.Count - 6)
+        if (!_isLoading && _offset < _total && args.ItemIndex >= _collections.Count - 6)
         {
             await LoadCollectionsAsync(reset: false);
         }
@@ -105,20 +123,48 @@ public sealed partial class CollectionsPage : Page
             _isLoading = true;
             ShowStatus("正在加载收藏...", InfoBarSeverity.Informational);
             _username ??= (await AppServices.GetCurrentUserAsync(cancellationToken: requestCts.Token)).Username;
-            var result = await AppServices.ApiClient.GetCollectionsAsync(_username, subjectType, collectionType, _offset, requestCts.Token);
-            if (!ReferenceEquals(requestCts, _loadCts))
+            var addedCount = 0;
+            var hiddenCount = 0;
+            var fetchedPages = 0;
+            do
             {
-                return;
-            }
+                var result = await AppServices.ApiClient.GetCollectionsAsync(_username, subjectType, collectionType, _offset, requestCts.Token);
+                if (!ReferenceEquals(requestCts, _loadCts))
+                {
+                    return;
+                }
 
-            _total = result.Total;
-            foreach (var item in result.Data)
+                _total = result.Total;
+                foreach (var item in result.Data)
+                {
+                    if (AppServices.ContentSafety.IsSubjectVisible(item.Subject))
+                    {
+                        _collections.Add(item);
+                        addedCount++;
+                    }
+                    else
+                    {
+                        hiddenCount++;
+                    }
+                }
+
+                _offset += result.Data.Count;
+                fetchedPages++;
+                if (result.Data.Count == 0)
+                {
+                    break;
+                }
+            }
+            while (_offset < _total && addedCount < 30 && fetchedPages < 5);
+
+            if (hiddenCount > 0)
             {
-                _collections.Add(item);
+                ShowStatus($"已按内容安全设置隐藏 {hiddenCount} 个条目。", InfoBarSeverity.Informational);
             }
-
-            _offset += result.Data.Count;
-            HideStatus();
+            else
+            {
+                HideStatus();
+            }
         }
         catch (OperationCanceledException) when (requestCts.IsCancellationRequested)
         {

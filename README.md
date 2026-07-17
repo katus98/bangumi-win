@@ -18,6 +18,7 @@ An unofficial https://bgm.tv app client for Windows 11. 一个适配 Windows 11 
 - 搜索页：顶部使用下划线样式的全部、动画、书籍、音乐、游戏、三次元、人物切换条切换搜索分类；结果下滑触底自动加载后续数据，点击结果进入对应详情页。
 - 条目详情页：展示封面、标题、原名、类型、评分、简介、当前收藏状态和动画单集状态；点击收藏状态卡片编辑收藏，单集状态可在单集列表内直接修改。
 - 设置页：支持跟随系统、浅色和深色主题，并展示当前包版本、项目与 API 文档入口。
+- 内容安全：默认隐藏 Bangumi 标记为 NSFW 的条目；显式开启前会二次确认。时间胶囊动态和吐槽支持举报并在本机隐藏。
 
 ## 代码结构
 
@@ -41,7 +42,13 @@ Bangumi.Win/
 
 时间胶囊解析会提取动态中作品卡片的封面图和作品 ID；没有作品卡片的纯文本动态保持无封面展示且不可进入作品详情。时间胶囊、收藏和搜索列表都使用增量加载；筛选、搜索条件、账号或导航变化会取消旧请求，避免过期结果覆盖当前页面。
 
-MSIX 清单保留 WinUI 3 桌面应用所需的 `runFullTrust`，并移除了模板里与本客户端无关的系统 AI 权限。商店上架前仍需要替换正式 Publisher、包名、图标和隐私声明。
+MSIX 清单只面向 `Windows.Desktop`，并保留 WinUI 3 桌面应用所需的 `runFullTrust`。项目已经关联 Microsoft Store 身份；提交资料可参考 [STORE_SUBMISSION.md](STORE_SUBMISSION.md)。
+
+## 合规与隐私
+
+- [隐私政策](PRIVACY.md)
+- [用户内容准则](CONTENT_GUIDELINES.md)
+- [Microsoft Store 提交准备](STORE_SUBMISSION.md)
 
 ## 开发验证
 

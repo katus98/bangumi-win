@@ -18,7 +18,7 @@ namespace Bangumi.Win.Services;
 public sealed class BangumiApiClient
 {
     private static readonly Uri BaseUri = new("https://api.bgm.tv");
-    private static readonly string UserAgent = $"Bangumi.Win/{typeof(BangumiApiClient).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"} (https://github.com/katus/bangumi-win)";
+    private static readonly string UserAgent = $"Bangumi.Win/{typeof(BangumiApiClient).Assembly.GetName().Version?.ToString(3) ?? "1.0.0"} (https://github.com/katus98/bangumi-win)";
     private readonly HttpClient _httpClient;
     private readonly TokenStore _tokenStore;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -193,7 +193,8 @@ public sealed class BangumiApiClient
             subject.Summary ?? string.Empty,
             subject.ImageUrl,
             subject.Type,
-            false)).ToList();
+            false,
+            subject.Nsfw)).ToList();
     }
 
     private async Task<IReadOnlyList<SearchResultItem>> SearchPersonsAsync(string keyword, int offset, CancellationToken cancellationToken)
@@ -221,7 +222,7 @@ public sealed class BangumiApiClient
                 : "人物";
             var summary = GetString(person, "summary") ?? string.Empty;
             var image = person.TryGetProperty("images", out var images) ? GetString(images, "medium") ?? GetString(images, "grid") ?? string.Empty : string.Empty;
-            return new SearchResultItem(id, name, career, summary, image, null, true);
+            return new SearchResultItem(id, name, career, summary, image, null, true, false);
         }).ToList();
     }
 
@@ -392,6 +393,7 @@ public sealed class BangumiApiClient
             var userMatch = Regex.Match(itemHtml, @"<a\s+href=""/user/[^""]+""\s+class=""l""[^>]*>(?<user>[\s\S]*?)</a>", RegexOptions.IgnoreCase);
             var dateMatch = Regex.Match(itemHtml, @"<small\s+class=""grey"">\s*@\s*(?<date>.*?)</small>", RegexOptions.IgnoreCase);
             var rateMatch = Regex.Match(itemHtml, @"stars(?<rate>\d+)", RegexOptions.IgnoreCase);
+            var sourceIdMatch = Regex.Match(itemHtml, @"\bid=""(?<id>(?:post_)?\d+)""", RegexOptions.IgnoreCase);
             var rate = rateMatch.Success && int.TryParse(rateMatch.Groups["rate"].Value, out var parsedRate) ? parsedRate : (int?)null;
             var createdAt = dateMatch.Success && DateTimeOffset.TryParse(StripHtml(dateMatch.Groups["date"].Value), out var parsedDate)
                 ? parsedDate
@@ -400,7 +402,8 @@ public sealed class BangumiApiClient
                 userMatch.Success ? StripHtml(userMatch.Groups["user"].Value) : string.Empty,
                 StripHtml(commentMatch.Groups["comment"].Value),
                 createdAt,
-                rate));
+                rate,
+                sourceIdMatch.Success ? sourceIdMatch.Groups["id"].Value : string.Empty));
         }
 
         return comments;

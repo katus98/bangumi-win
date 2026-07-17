@@ -20,12 +20,45 @@
             </StackPanel>
 
             <StackPanel Spacing="8">
+                <TextBlock Text="内容安全" FontWeight="SemiBold" />
+                <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                    <StackPanel Spacing="12">
+                        <ToggleSwitch
+                            x:Name="SensitiveContentToggle"
+                            Header="显示 Bangumi 标记为 NSFW 的条目"
+                            OffContent="隐藏（推荐）"
+                            OnContent="显示" />
+                        <TextBlock
+                            Text="默认隐藏成人或敏感条目及其关联动态。开启前需要再次确认；此设置不改变 Bangumi 网站上的内容。"
+                            TextWrapping="Wrap"
+                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="清除本地隐藏记录" Click="ClearHiddenContent_Click" />
+                            <TextBlock x:Name="HiddenContentCountText" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+                <TextBlock Text="隐私与社区安全" FontWeight="SemiBold" />
+                <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="吐槽与时间胶囊由 Bangumi 用户发布。可在内容旁举报并立即在本机隐藏。" TextWrapping="Wrap" />
+                        <HyperlinkButton HorizontalAlignment="Left" Content="隐私政策" NavigateUri="https://github.com/katus98/bangumi-win/blob/main/PRIVACY.md" />
+                        <HyperlinkButton HorizontalAlignment="Left" Content="用户内容准则" NavigateUri="https://github.com/katus98/bangumi-win/blob/main/CONTENT_GUIDELINES.md" />
+                        <HyperlinkButton HorizontalAlignment="Left" Content="举报不当内容" NavigateUri="https://github.com/katus98/bangumi-win/issues/new?template=content-report.md" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
                 <TextBlock Text="关于" FontWeight="SemiBold" />
                 <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
                     <StackPanel Spacing="4">
                         <TextBlock Text="番喵" FontWeight="SemiBold" />
-                        <TextBlock Text="Windows 11 风格的 Bangumi 第三方客户端。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="本应用与 Bangumi 官方无隶属关系。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="Windows 11 风格的 Bangumi 非官方第三方客户端。" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="本应用由 katus 独立开发，与 Bangumi 官方无隶属、授权或背书关系。" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <TextBlock x:Name="VersionText" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
                     </StackPanel>
                 </Border>
@@ -36,7 +69,7 @@
                 <Border Padding="16" Background="{ThemeResource CardBackgroundFillColorDefaultBrush}" CornerRadius="6">
                     <StackPanel Spacing="8">
                         <TextBlock Text="本项目使用 WinUI 3、Windows App SDK 和 Bangumi API。" TextWrapping="Wrap" />
-                        <HyperlinkButton HorizontalAlignment="Left" Content="项目源代码" NavigateUri="https://github.com/katus/bangumi-win" />
+                        <HyperlinkButton HorizontalAlignment="Left" Content="项目源代码" NavigateUri="https://github.com/katus98/bangumi-win" />
                         <HyperlinkButton HorizontalAlignment="Left" Content="Bangumi API 文档" NavigateUri="https://bangumi.github.io/api/" />
                     </StackPanel>
                 </Border>
