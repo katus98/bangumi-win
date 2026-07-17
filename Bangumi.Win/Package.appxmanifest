@@ -8,11 +8,11 @@
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="465499ae-5c88-43d4-90f5-48500399d0d1"
-    Publisher="CN=katus"
+    Name="katus.31267E960826A"
+    Publisher="CN=04A6050A-6B31-4B06-B712-9B15B31F66EE"
     Version="1.0.0.0" />
 
-  <mp:PhoneIdentity PhoneProductId="465499ae-5c88-43d4-90f5-48500399d0d1" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
+  <mp:PhoneIdentity PhoneProductId="b5fe4b7f-c387-493b-a3b1-b53a3c148b1e" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>番喵</DisplayName>
